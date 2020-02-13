@@ -1,4 +1,4 @@
-# Copyright 2019 The Knative Authors
+# Copyright 2020 The Knative Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    samples.knative.dev/release: devel
-    control-plane: sample-source-controller-manager
-  name: sample-source-controller-manager
-  namespace: knative-samples
+    gateway.n3wscott.com/release: devel
+    control-plane: gateway-controller
+  name: gateway-controller
+  namespace: n3wscott-gateway
 spec:
   selector:
-    control-plane: sample-source-controller-manager
+    control-plane: gateway-controller
   ports:
   - port: 443

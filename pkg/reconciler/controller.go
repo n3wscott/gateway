@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Knative Authors
+Copyright 2020 The Knative Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package reconciler
 
 import (
 	"context"
+	"github.com/n3wscott/gateway/pkg/client/injection/reconciler/gateway/v1alpha1/slack"
 
 	"github.com/kelseyhightower/envconfig"
 	"k8s.io/client-go/tools/cache"
@@ -28,13 +29,10 @@ import (
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/resolver"
 
-	eventingclient "knative.dev/eventing/pkg/client/injection/client"
-	eventtypeinformer "knative.dev/eventing/pkg/client/injection/informers/eventing/v1alpha1/eventtype"
+	samplesourceClient "github.com/n3wscott/gateway/pkg/client/injection/client"
+	slackinformer "github.com/n3wscott/gateway/pkg/client/injection/informers/gateway/v1alpha1/slack"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	deploymentinformer "knative.dev/pkg/client/injection/kube/informers/apps/v1/deployment"
-	samplesourceClient "knative.dev/sample-source/pkg/client/injection/client"
-	samplesourceinformer "knative.dev/sample-source/pkg/client/injection/informers/samples/v1alpha1/samplesource"
-	"knative.dev/sample-source/pkg/client/injection/reconciler/samples/v1alpha1/samplesource"
 )
 
 // NewController initializes the controller and is called by the generated code
@@ -44,13 +42,11 @@ func NewController(
 	cmw configmap.Watcher,
 ) *controller.Impl {
 	deploymentInformer := deploymentinformer.Get(ctx)
-	sampleSourceInformer := samplesourceinformer.Get(ctx)
-	eventTypeInformer := eventtypeinformer.Get(ctx)
+	slackInformer := slackinformer.Get(ctx)
 
 	r := &Reconciler{
 		KubeClientSet:         kubeclient.Get(ctx),
-		EventingClientSet:     eventingclient.Get(ctx),
-		samplesourceLister:    sampleSourceInformer.Lister(),
+		samplesourceLister:    slackInformer.Lister(),
 		deploymentLister:      deploymentInformer.Lister(),
 		samplesourceClientSet: samplesourceClient.Get(ctx),
 	}
@@ -58,19 +54,14 @@ func NewController(
 		logging.FromContext(ctx).Panicf("required environment variable is not defined: %v", err)
 	}
 
-	impl := samplesource.NewImpl(ctx, r)
+	impl := slack.NewImpl(ctx, r)
 	r.sinkResolver = resolver.NewURIResolver(ctx, impl.EnqueueKey)
 
 	logging.FromContext(ctx).Info("Setting up event handlers")
-	sampleSourceInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))
+	slackInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))
 
 	deploymentInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
-		FilterFunc: controller.Filter(v1alpha1.SchemeGroupVersion.WithKind("SampleSource")),
-		Handler:    controller.HandleAll(impl.EnqueueControllerOf),
-	})
-
-	eventTypeInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
-		FilterFunc: controller.Filter(v1alpha1.SchemeGroupVersion.WithKind("SampleSource")),
+		FilterFunc: controller.Filter(v1alpha1.SchemeGroupVersion.WithKind("Slack")),
 		Handler:    controller.HandleAll(impl.EnqueueControllerOf),
 	})
 

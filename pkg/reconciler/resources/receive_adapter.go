@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Knative Authors
+Copyright 2020 The Knative Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import (
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/kmeta"
 
-	"knative.dev/sample-source/pkg/apis/samples/v1alpha1"
+	"github.com/n3wscott/gateway/pkg/apis/gateway/v1alpha1"
 )
 
 // ReceiveAdapterArgs are the arguments needed to create a Sample Source Receive Adapter.
@@ -34,7 +34,7 @@ import (
 type ReceiveAdapterArgs struct {
 	EventSource string
 	Image       string
-	Source      *v1alpha1.SampleSource
+	Source      *v1alpha1.Slack
 	Labels      map[string]string
 	SinkURI     *apis.URL
 }
@@ -42,6 +42,7 @@ type ReceiveAdapterArgs struct {
 // MakeReceiveAdapter generates (but does not insert into K8s) the Receive Adapter Deployment for
 // Sample sources.
 func MakeReceiveAdapter(args *ReceiveAdapterArgs) *v1.Deployment {
+	defaultServiceAccount := "default"
 	_, err := apis.ParseURL(args.SinkURI.String())
 	if err != nil {
 		panic("should NEVER happen")
@@ -66,10 +67,10 @@ func MakeReceiveAdapter(args *ReceiveAdapterArgs) *v1.Deployment {
 					Labels: args.Labels,
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: args.Source.Spec.ServiceAccountName,
+					ServiceAccountName: defaultServiceAccount,
 					Containers: []corev1.Container{
 						{
-							Name:  "receive-adapter",
+							Name:  "slack",
 							Image: args.Image,
 							Env:   makeEnv(args.EventSource, args.SinkURI.String(), &args.Source.Spec),
 						},
@@ -80,7 +81,7 @@ func MakeReceiveAdapter(args *ReceiveAdapterArgs) *v1.Deployment {
 	}
 }
 
-func makeEnv(eventSource, sinkURI string, spec *v1alpha1.SampleSourceSpec) []corev1.EnvVar {
+func makeEnv(eventSource, sinkURI string, spec *v1alpha1.SlackSpec) []corev1.EnvVar {
 	return []corev1.EnvVar{{
 		Name:  "SINK_URI",
 		Value: sinkURI,

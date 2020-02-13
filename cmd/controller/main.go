@@ -18,7 +18,7 @@ package main
 
 import (
 	// The set of controllers this controller process runs.
-	"knative.dev/sample-source/pkg/reconciler"
+	"github.com/n3wscott/gateway/pkg/reconciler"
 
 	// This defines the shared main for injected controllers.
 	"knative.dev/pkg/injection/sharedmain"

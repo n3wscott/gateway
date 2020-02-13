@@ -1,4 +1,4 @@
-# Copyright 2019 The Knative Authors
+# Copyright 2020 The Knative Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,27 +15,27 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: sample-source-controller
-  namespace: knative-samples
+  name: gateway-controller
+  namespace: n3wscott-gateway
   labels:
-    samples.knative.dev/release: devel
+    gateway.n3wscott.com/release: devel
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: sample-source-controller
+      app: gateway-controller
   template:
     metadata:
       labels:
-        app: sample-source-controller
-        samples.knative.dev/release: devel
+        app: gateway-controller
+        gateway.n3wscott.com/release: devel
     spec:
-      serviceAccountName: sample-source-controller
+      serviceAccountName: gateway-controller
 
       containers:
       - name: controller
         terminationMessagePolicy: FallbackToLogsOnError
-        image: knative.dev/sample-source/cmd/controller
+        image: github.com/n3wscott/gateway/cmd/controller
 
         resources:
           requests:
@@ -53,8 +53,8 @@ spec:
             value: config-observability
           - name: METRICS_DOMAIN
             value: knative.dev/sources
-          - name: SAMPLE_SOURCE_RA_IMAGE
-            value: knative.dev/sample-source/cmd/receive_adapter
+          - name: SLACK_IMAGE
+            value: github.com/n3wscott/gateway/cmd/slack
 
         securityContext:
           allowPrivilegeEscalation: false
