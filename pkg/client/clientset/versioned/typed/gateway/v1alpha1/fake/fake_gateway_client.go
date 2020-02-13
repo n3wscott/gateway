@@ -28,8 +28,8 @@ type FakeGatewayV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeGatewayV1alpha1) Slacks(namespace string) v1alpha1.SlackInterface {
-	return &FakeSlacks{c, namespace}
+func (c *FakeGatewayV1alpha1) Slackbots(namespace string) v1alpha1.SlackbotInterface {
+	return &FakeSlackbots{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

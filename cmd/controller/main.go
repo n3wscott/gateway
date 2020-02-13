@@ -17,13 +17,12 @@ limitations under the License.
 package main
 
 import (
-	// The set of controllers this controller process runs.
-	"github.com/n3wscott/gateway/pkg/reconciler"
+	"github.com/n3wscott/gateway/pkg/reconciler/slackbot"
 
 	// This defines the shared main for injected controllers.
 	"knative.dev/pkg/injection/sharedmain"
 )
 
 func main() {
-	sharedmain.Main("sample-source-controller", reconciler.NewController)
+	sharedmain.Main("gateway-controller", slackbot.NewController)
 }

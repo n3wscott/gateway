@@ -24,8 +24,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// Slacks returns a SlackInformer.
-	Slacks() SlackInformer
+	// Slackbots returns a SlackbotInformer.
+	Slackbots() SlackbotInformer
 }
 
 type version struct {
@@ -39,7 +39,7 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// Slacks returns a SlackInformer.
-func (v *version) Slacks() SlackInformer {
-	return &slackInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+// Slackbots returns a SlackbotInformer.
+func (v *version) Slackbots() SlackbotInformer {
+	return &slackbotInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

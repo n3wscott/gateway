@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package reconciler
+package slackbot
 
 import (
 	"context"
-	"github.com/n3wscott/gateway/pkg/client/injection/reconciler/gateway/v1alpha1/slack"
+	"github.com/n3wscott/gateway/pkg/client/injection/reconciler/gateway/v1alpha1/slackbot"
 
 	"github.com/kelseyhightower/envconfig"
 	"k8s.io/client-go/tools/cache"
@@ -30,7 +30,7 @@ import (
 	"knative.dev/pkg/resolver"
 
 	samplesourceClient "github.com/n3wscott/gateway/pkg/client/injection/client"
-	slackinformer "github.com/n3wscott/gateway/pkg/client/injection/informers/gateway/v1alpha1/slack"
+	slackbotinformer "github.com/n3wscott/gateway/pkg/client/injection/informers/gateway/v1alpha1/slackbot"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	deploymentinformer "knative.dev/pkg/client/injection/kube/informers/apps/v1/deployment"
 )
@@ -42,11 +42,11 @@ func NewController(
 	cmw configmap.Watcher,
 ) *controller.Impl {
 	deploymentInformer := deploymentinformer.Get(ctx)
-	slackInformer := slackinformer.Get(ctx)
+	slackbotInformer := slackbotinformer.Get(ctx)
 
 	r := &Reconciler{
-		KubeClientSet:         kubeclient.Get(ctx),
-		samplesourceLister:    slackInformer.Lister(),
+		kubeClientSet:         kubeclient.Get(ctx),
+		slackbotLister:    slackbotInformer.Lister(),
 		deploymentLister:      deploymentInformer.Lister(),
 		samplesourceClientSet: samplesourceClient.Get(ctx),
 	}
@@ -54,14 +54,14 @@ func NewController(
 		logging.FromContext(ctx).Panicf("required environment variable is not defined: %v", err)
 	}
 
-	impl := slack.NewImpl(ctx, r)
+	impl := slackbot.NewImpl(ctx, r)
 	r.sinkResolver = resolver.NewURIResolver(ctx, impl.EnqueueKey)
 
 	logging.FromContext(ctx).Info("Setting up event handlers")
 	slackInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))
 
 	deploymentInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
-		FilterFunc: controller.Filter(v1alpha1.SchemeGroupVersion.WithKind("Slack")),
+		FilterFunc: controller.Filter(v1alpha1.SchemeGroupVersion.WithKind("Slackbot")),
 		Handler:    controller.HandleAll(impl.EnqueueControllerOf),
 	})
 

@@ -60,7 +60,7 @@ func (a *Adapter) newEvent() cloudevents.Event {
 	e := cloudevents.Event{
 		Context: cloudevents.EventContextV1{
 			ID:              uuid.New().String(),
-			Type:            "dev.knative.sample",
+			Type:            "com.n3wscott.slackbot",
 			Source:          sourceURI,
 			Time:            &types.Timestamp{Time: time.Now()},
 			DataContentType: strptr("application/json"),

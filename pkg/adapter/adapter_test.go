@@ -52,7 +52,7 @@ func TestAdapter(t *testing.T) {
 func verify(t *testing.T, received chan ce.Event) {
 	for _, id := range []int{0, 1, 2} {
 		e := <-received
-		assert.Equal(t, "dev.knative.sample", e.Type())
+		assert.Equal(t, "com.n3wscott.slackbot", e.Type())
 		//m := map[string]json.RawMessage{}
 		m := &dataExample{}
 		assert.NoError(t, e.DataAs(&m))

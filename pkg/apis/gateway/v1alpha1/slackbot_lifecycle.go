@@ -25,13 +25,13 @@ import (
 )
 
 const (
-	// SlackConditionReady has status True when the Slack is ready to send events.
+	// SlackConditionReady has status True when the Slackbot is ready to send events.
 	SlackConditionReady = apis.ConditionReady
 
-	// SlackConditionSinkProvided has status True when the Slack has been configured with a sink target.
+	// SlackConditionSinkProvided has status True when the Slackbot has been configured with a sink target.
 	SlackConditionSinkProvided apis.ConditionType = "SinkProvided"
 
-	// SlackConditionDeployed has status True when the Slack has had it's deployment created.
+	// SlackConditionDeployed has status True when the Slackbot has had it's deployment created.
 	SlackConditionDeployed apis.ConditionType = "Deployed"
 )
 
@@ -41,17 +41,17 @@ var slackCondSet = apis.NewLivingConditionSet(
 )
 
 // GetCondition returns the condition currently associated with the given type, or nil.
-func (s *SlackStatus) GetCondition(t apis.ConditionType) *apis.Condition {
+func (s *SlackbotStatus) GetCondition(t apis.ConditionType) *apis.Condition {
 	return slackCondSet.Manage(s).GetCondition(t)
 }
 
 // InitializeConditions sets relevant unset conditions to Unknown state.
-func (s *SlackStatus) InitializeConditions() {
+func (s *SlackbotStatus) InitializeConditions() {
 	slackCondSet.Manage(s).InitializeConditions()
 }
 
 // MarkSinkWarnDeprecated sets the condition that the source has a sink configured and warns ref is deprecated.
-func (s *SlackStatus) MarkSinkWarnRefDeprecated(uri *apis.URL) {
+func (s *SlackbotStatus) MarkSinkWarnRefDeprecated(uri *apis.URL) {
 	s.SinkURI = uri
 	if len(uri.String()) > 0 {
 		c := apis.Condition{
@@ -67,7 +67,7 @@ func (s *SlackStatus) MarkSinkWarnRefDeprecated(uri *apis.URL) {
 }
 
 // MarkSink sets the condition that the source has a sink configured.
-func (s *SlackStatus) MarkSink(uri *apis.URL) {
+func (s *SlackbotStatus) MarkSink(uri *apis.URL) {
 	s.SinkURI = uri
 	if len(uri.String()) > 0 {
 		slackCondSet.Manage(s).MarkTrue(SlackConditionSinkProvided)
@@ -77,13 +77,13 @@ func (s *SlackStatus) MarkSink(uri *apis.URL) {
 }
 
 // MarkNoSink sets the condition that the source does not have a sink configured.
-func (s *SlackStatus) MarkNoSink(reason, messageFormat string, messageA ...interface{}) {
+func (s *SlackbotStatus) MarkNoSink(reason, messageFormat string, messageA ...interface{}) {
 	slackCondSet.Manage(s).MarkFalse(SlackConditionSinkProvided, reason, messageFormat, messageA...)
 }
 
 // PropagateDeploymentAvailability uses the availability of the provided Deployment to determine if
 // SlackConditionDeployed should be marked as true or false.
-func (s *SlackStatus) PropagateDeploymentAvailability(d *appsv1.Deployment) {
+func (s *SlackbotStatus) PropagateDeploymentAvailability(d *appsv1.Deployment) {
 	if duck.DeploymentIsAvailable(&d.Status, false) {
 		slackCondSet.Manage(s).MarkTrue(SlackConditionDeployed)
 	} else {
@@ -94,6 +94,6 @@ func (s *SlackStatus) PropagateDeploymentAvailability(d *appsv1.Deployment) {
 }
 
 // IsReady returns true if the resource is ready overall.
-func (s *SlackStatus) IsReady() bool {
+func (s *SlackbotStatus) IsReady() bool {
 	return slackCondSet.Manage(s).IsHappy()
 }

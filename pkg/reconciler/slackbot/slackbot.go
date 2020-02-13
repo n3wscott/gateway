@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package reconciler
+package slackbot
 
 import (
 	"context"
@@ -40,9 +40,9 @@ import (
 
 	"github.com/n3wscott/gateway/pkg/apis/gateway/v1alpha1"
 	versioned "github.com/n3wscott/gateway/pkg/client/clientset/versioned"
-	reconcilerslack "github.com/n3wscott/gateway/pkg/client/injection/reconciler/gateway/v1alpha1/slack"
+	reconcilerslack "github.com/n3wscott/gateway/pkg/client/injection/reconciler/gateway/v1alpha1/slackbot"
 	listers "github.com/n3wscott/gateway/pkg/client/listers/gateway/v1alpha1"
-	"github.com/n3wscott/gateway/pkg/reconciler/resources"
+	"github.com/n3wscott/gateway/pkg/reconciler/slackbot/resources"
 )
 
 var (
@@ -52,36 +52,36 @@ var (
 // newReconciledNormal makes a new reconciler event with event type Normal, and
 // reason SlackReconciled.
 func newReconciledNormal(namespace, name string) pkgreconciler.Event {
-	return pkgreconciler.NewEvent(corev1.EventTypeNormal, "SlackReconciled", "Slack reconciled: \"%s/%s\"", namespace, name)
+	return pkgreconciler.NewEvent(corev1.EventTypeNormal, "SlackReconciled", "Slackbot reconciled: \"%s/%s\"", namespace, name)
 }
 
 // newDeploymentCreated makes a new reconciler event with event type Normal, and
 // reason SlackDeploymentCreated.
 func newDeploymentCreated(namespace, name string) pkgreconciler.Event {
-	return pkgreconciler.NewEvent(corev1.EventTypeNormal, "SlackDeploymentCreated", "Slack created deployment: \"%s/%s\"", namespace, name)
+	return pkgreconciler.NewEvent(corev1.EventTypeNormal, "SlackDeploymentCreated", "Slackbot created deployment: \"%s/%s\"", namespace, name)
 }
 
 // newDeploymentFailed makes a new reconciler event with event type Warning, and
 // reason SlackDeploymentFailed.
 func newDeploymentFailed(namespace, name string, err error) pkgreconciler.Event {
-	return pkgreconciler.NewEvent(corev1.EventTypeWarning, "SlackDeploymentFailed", "Slack failed to create deployment: \"%s/%s\", %w", namespace, name, err)
+	return pkgreconciler.NewEvent(corev1.EventTypeWarning, "SlackDeploymentFailed", "Slackbot failed to create deployment: \"%s/%s\", %w", namespace, name, err)
 }
 
 // newDeploymentUpdated makes a new reconciler event with event type Normal, and
 // reason SlackDeploymentUpdated.
 func newDeploymentUpdated(namespace, name string) pkgreconciler.Event {
-	return pkgreconciler.NewEvent(corev1.EventTypeNormal, "SlackDeploymentUpdated", "Slack updated deployment: \"%s/%s\"", namespace, name)
+	return pkgreconciler.NewEvent(corev1.EventTypeNormal, "SlackDeploymentUpdated", "Slackbot updated deployment: \"%s/%s\"", namespace, name)
 }
 
-// Reconciler reconciles a Slack object
+// Reconciler reconciles a Slackbot object
 type Reconciler struct {
 	// KubeClientSet allows us to talk to the k8s for core APIs
-	KubeClientSet kubernetes.Interface
+	kubeClientSet kubernetes.Interface
 
-	ReceiveAdapterImage string `envconfig:"SLACK_IMAGE" required:"true"`
+	ReceiveAdapterImage string `envconfig:"SLACKBOT_IMAGE" required:"true"`
 
 	// listers index properties about resources
-	samplesourceLister listers.SlackLister
+	slackbotLister listers.SlackbotLister
 	deploymentLister   appsv1listers.DeploymentLister
 	eventTypeLister    eventinglisters.EventTypeLister
 
@@ -94,7 +94,7 @@ type Reconciler struct {
 var _ reconcilerslack.Interface = (*Reconciler)(nil)
 
 // ReconcileKind implements Interface.ReconcileKind.
-func (r *Reconciler) ReconcileKind(ctx context.Context, source *v1alpha1.Slack) pkgreconciler.Event {
+func (r *Reconciler) ReconcileKind(ctx context.Context, source *v1alpha1.Slackbot) pkgreconciler.Event {
 	source.Status.InitializeConditions()
 
 	dest := source.Spec.Sink.DeepCopy()
@@ -127,7 +127,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, source *v1alpha1.Slack) 
 	return newReconciledNormal(source.Namespace, source.Name)
 }
 
-func (r *Reconciler) createReceiveAdapter(ctx context.Context, src *v1alpha1.Slack, sinkURI *apis.URL) (*appsv1.Deployment, pkgreconciler.Event) {
+func (r *Reconciler) createReceiveAdapter(ctx context.Context, src *v1alpha1.Slackbot, sinkURI *apis.URL) (*appsv1.Deployment, pkgreconciler.Event) {
 	eventSource := r.makeEventSource(src)
 	logging.FromContext(ctx).Debug("event source", zap.Any("source", eventSource))
 
@@ -140,9 +140,9 @@ func (r *Reconciler) createReceiveAdapter(ctx context.Context, src *v1alpha1.Sla
 	}
 	expected := resources.MakeReceiveAdapter(&adapterArgs)
 
-	ra, err := r.KubeClientSet.AppsV1().Deployments(src.Namespace).Get(expected.Name, metav1.GetOptions{})
+	ra, err := r.kubeClientSet.AppsV1().Deployments(src.Namespace).Get(expected.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		ra, err = r.KubeClientSet.AppsV1().Deployments(src.Namespace).Create(expected)
+		ra, err = r.kubeClientSet.AppsV1().Deployments(src.Namespace).Create(expected)
 		if err != nil {
 			return nil, newDeploymentFailed(expected.Namespace, expected.Name, err)
 		}
@@ -150,10 +150,10 @@ func (r *Reconciler) createReceiveAdapter(ctx context.Context, src *v1alpha1.Sla
 	} else if err != nil {
 		return nil, fmt.Errorf("error getting receive adapter: %v", err)
 	} else if !metav1.IsControlledBy(ra, src) {
-		return nil, fmt.Errorf("deployment %q is not owned by Slack %q", ra.Name, src.Name)
+		return nil, fmt.Errorf("deployment %q is not owned by Slackbot %q", ra.Name, src.Name)
 	} else if r.podSpecChanged(ra.Spec.Template.Spec, expected.Spec.Template.Spec) {
 		ra.Spec.Template.Spec = expected.Spec.Template.Spec
-		if ra, err = r.KubeClientSet.AppsV1().Deployments(src.Namespace).Update(ra); err != nil {
+		if ra, err = r.kubeClientSet.AppsV1().Deployments(src.Namespace).Update(ra); err != nil {
 			return ra, err
 		}
 		return ra, newDeploymentUpdated(ra.Namespace, ra.Name)
@@ -178,8 +178,8 @@ func (r *Reconciler) podSpecChanged(oldPodSpec corev1.PodSpec, newPodSpec corev1
 	return false
 }
 
-func (r *Reconciler) getReceiveAdapter(ctx context.Context, src *v1alpha1.Slack) (*appsv1.Deployment, error) {
-	dl, err := r.KubeClientSet.AppsV1().Deployments(src.Namespace).List(metav1.ListOptions{
+func (r *Reconciler) getReceiveAdapter(ctx context.Context, src *v1alpha1.Slackbot) (*appsv1.Deployment, error) {
+	dl, err := r.kubeClientSet.AppsV1().Deployments(src.Namespace).List(metav1.ListOptions{
 		LabelSelector: r.getLabelSelector(src).String(),
 	})
 	if err != nil {
@@ -194,11 +194,11 @@ func (r *Reconciler) getReceiveAdapter(ctx context.Context, src *v1alpha1.Slack)
 	return nil, apierrors.NewNotFound(schema.GroupResource{}, "")
 }
 
-func (r *Reconciler) getLabelSelector(src *v1alpha1.Slack) labels.Selector {
+func (r *Reconciler) getLabelSelector(src *v1alpha1.Slackbot) labels.Selector {
 	return labels.SelectorFromSet(resources.Labels(src.Name))
 }
 
 // makeEventSource computes the Cloud Event source attribute for the given source
-func (r *Reconciler) makeEventSource(src *v1alpha1.Slack) string {
+func (r *Reconciler) makeEventSource(src *v1alpha1.Slackbot) string {
 	return src.Namespace + "/" + src.Name
 }

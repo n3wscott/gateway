@@ -34,7 +34,7 @@ import (
 type ReceiveAdapterArgs struct {
 	EventSource string
 	Image       string
-	Source      *v1alpha1.Slack
+	Source      *v1alpha1.Slackbot
 	Labels      map[string]string
 	SinkURI     *apis.URL
 }
@@ -70,7 +70,7 @@ func MakeReceiveAdapter(args *ReceiveAdapterArgs) *v1.Deployment {
 					ServiceAccountName: defaultServiceAccount,
 					Containers: []corev1.Container{
 						{
-							Name:  "slack",
+							Name:  "slackbot",
 							Image: args.Image,
 							Env:   makeEnv(args.EventSource, args.SinkURI.String(), &args.Source.Spec),
 						},
@@ -81,7 +81,7 @@ func MakeReceiveAdapter(args *ReceiveAdapterArgs) *v1.Deployment {
 	}
 }
 
-func makeEnv(eventSource, sinkURI string, spec *v1alpha1.SlackSpec) []corev1.EnvVar {
+func makeEnv(eventSource, sinkURI string, spec *v1alpha1.SlackbotSpec) []corev1.EnvVar {
 	return []corev1.EnvVar{{
 		Name:  "SINK_URI",
 		Value: sinkURI,

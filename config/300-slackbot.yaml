@@ -19,15 +19,15 @@ metadata:
     duck.knative.dev/source: "true"
     duck.knative.dev/addressable: "true"
     gateway.n3wscott.com/release: devel
-  name: slacks.gateway.n3wscott.com
+  name: slackbots.gateway.n3wscott.com
 spec:
   group: gateway.n3wscott.com
   names:
     categories:
     - all
     - sources
-    kind: Slack
-    plural: slacks
+    kind: Slackbot
+    plural: slackbots
   scope: Namespaced
   subresources:
     status: {}

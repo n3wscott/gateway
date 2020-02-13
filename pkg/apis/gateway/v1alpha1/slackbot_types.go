@@ -29,35 +29,35 @@ import (
 // +genreconciler
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:openapi-gen=true
-type Slack struct {
+type Slackbot struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Spec holds the desired state of the Slack (from the client).
-	Spec SlackSpec `json:"spec"`
+	// Spec holds the desired state of the Slackbot (from the client).
+	Spec SlackbotSpec `json:"spec"`
 
-	// Status communicates the observed state of the Slack (from the controller).
+	// Status communicates the observed state of the Slackbot (from the controller).
 	// +optional
-	Status SlackStatus `json:"status,omitempty"`
+	Status SlackbotStatus `json:"status,omitempty"`
 }
 
 // GetGroupVersionKind returns the GroupVersionKind.
-func (s *Slack) GetGroupVersionKind() schema.GroupVersionKind {
-	return SchemeGroupVersion.WithKind("Slack")
+func (s *Slackbot) GetGroupVersionKind() schema.GroupVersionKind {
+	return SchemeGroupVersion.WithKind("Slackbot")
 }
 
-// Check that Slack is a runtime.Object.
-var _ runtime.Object = (*Slack)(nil)
+// Check that Slackbot is a runtime.Object.
+var _ runtime.Object = (*Slackbot)(nil)
 
-// Check that we can create OwnerReferences to a Slack.
-var _ kmeta.OwnerRefable = (*Slack)(nil)
+// Check that we can create OwnerReferences to a Slackbot.
+var _ kmeta.OwnerRefable = (*Slackbot)(nil)
 
-// Check that Slack implements the Conditions duck type.
-var _ = duck.VerifyType(&Slack{}, &duckv1.Conditions{})
+// Check that Slackbot implements the Conditions duck type.
+var _ = duck.VerifyType(&Slackbot{}, &duckv1.Conditions{})
 
-// SlackSpec holds the desired state of the Slack (from the client).
-type SlackSpec struct {
+// SlackbotSpec holds the desired state of the Slackbot (from the client).
+type SlackbotSpec struct {
 	// inherits duck/v1 SourceSpec, which currently provides:
 	// * Sink - a reference to an object that will resolve to a domain name or
 	//   a URI directly to use as the sink.
@@ -73,8 +73,8 @@ type SlackSpec struct {
 	Interval string `json:"interval"`
 }
 
-// SlackStatus communicates the observed state of the Slack (from the controller).
-type SlackStatus struct {
+// SlackbotStatus communicates the observed state of the Slackbot (from the controller).
+type SlackbotStatus struct {
 	// inherits duck/v1 SourceStatus, which currently provides:
 	// * ObservedGeneration - the 'Generation' of the Service that was last
 	//   processed by the controller.
@@ -84,16 +84,16 @@ type SlackStatus struct {
 	//   Source.
 	duckv1.SourceStatus `json:",inline"`
 
-	// AddressStatus is the part where the Slack fulfills the Addressable contract.
+	// AddressStatus is the part where the Slackbot fulfills the Addressable contract.
 	duckv1.AddressStatus `json:",inline"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// SlackList is a list of Slack resources
-type SlackList struct {
+// SlackbotList is a list of Slackbot resources
+type SlackbotList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
 
-	Items []Slack `json:"items"`
+	Items []Slackbot `json:"items"`
 }

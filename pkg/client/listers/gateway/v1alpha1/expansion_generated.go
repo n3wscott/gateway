@@ -18,10 +18,10 @@ limitations under the License.
 
 package v1alpha1
 
-// SlackListerExpansion allows custom methods to be added to
-// SlackLister.
-type SlackListerExpansion interface{}
+// SlackbotListerExpansion allows custom methods to be added to
+// SlackbotLister.
+type SlackbotListerExpansion interface{}
 
-// SlackNamespaceListerExpansion allows custom methods to be added to
-// SlackNamespaceLister.
-type SlackNamespaceListerExpansion interface{}
+// SlackbotNamespaceListerExpansion allows custom methods to be added to
+// SlackbotNamespaceLister.
+type SlackbotNamespaceListerExpansion interface{}

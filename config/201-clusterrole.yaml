@@ -45,13 +45,13 @@ rules:
 - apiGroups:
   - gateway.n3wscott.com
   resources:
-  - slacks
+  - slackbots
   verbs: *everything
 - apiGroups:
   - gateway.n3wscott.com
   resources:
-  - samplesources/status
-  - samplesources/finalizers
+  - slackbots/status
+  - slackbots/finalizers
   verbs:
   - get
   - update
@@ -66,13 +66,6 @@ rules:
   - list
   - watch
 
-# EventTypes admin
-- apiGroups:
-    - eventing.knative.dev
-  resources:
-    - eventtypes
-  verbs: *everything
-
 ---
 # The role is needed for the aggregated role source-observer in knative-eventing to provide readonly access to "Sources".
 # See https://github.com/knative/eventing/blob/master/config/200-source-observer-clusterrole.yaml.
@@ -85,9 +78,9 @@ metadata:
     duck.knative.dev/source: "true"
 rules:
   - apiGroups:
-      - "sources.eventing.knative.dev"
+      - gateway.n3wscott.com
     resources:
-      - "samplesources"
+      - slackbots
     verbs:
       - get
       - list

@@ -53,8 +53,8 @@ spec:
             value: config-observability
           - name: METRICS_DOMAIN
             value: knative.dev/sources
-          - name: SLACK_IMAGE
-            value: github.com/n3wscott/gateway/cmd/slack
+          - name: SLACKBOT_IMAGE
+            value: github.com/n3wscott/gateway/cmd/slackbot
 
         securityContext:
           allowPrivilegeEscalation: false

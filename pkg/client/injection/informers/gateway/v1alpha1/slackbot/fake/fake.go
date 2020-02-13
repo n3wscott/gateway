@@ -22,12 +22,12 @@ import (
 	"context"
 
 	fake "github.com/n3wscott/gateway/pkg/client/injection/informers/factory/fake"
-	slack "github.com/n3wscott/gateway/pkg/client/injection/informers/gateway/v1alpha1/slack"
+	slackbot "github.com/n3wscott/gateway/pkg/client/injection/informers/gateway/v1alpha1/slackbot"
 	controller "knative.dev/pkg/controller"
 	injection "knative.dev/pkg/injection"
 )
 
-var Get = slack.Get
+var Get = slackbot.Get
 
 func init() {
 	injection.Fake.RegisterInformer(withInformer)
@@ -35,6 +35,6 @@ func init() {
 
 func withInformer(ctx context.Context) (context.Context, controller.Informer) {
 	f := fake.Get(ctx)
-	inf := f.Gateway().V1alpha1().Slacks()
-	return context.WithValue(ctx, slack.Key{}, inf), inf.Informer()
+	inf := f.Gateway().V1alpha1().Slackbots()
+	return context.WithValue(ctx, slackbot.Key{}, inf), inf.Informer()
 }

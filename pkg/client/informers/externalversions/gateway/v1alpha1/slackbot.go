@@ -31,59 +31,59 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// SlackInformer provides access to a shared informer and lister for
-// Slacks.
-type SlackInformer interface {
+// SlackbotInformer provides access to a shared informer and lister for
+// Slackbots.
+type SlackbotInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.SlackLister
+	Lister() v1alpha1.SlackbotLister
 }
 
-type slackInformer struct {
+type slackbotInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewSlackInformer constructs a new informer for Slack type.
+// NewSlackbotInformer constructs a new informer for Slackbot type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewSlackInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredSlackInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewSlackbotInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredSlackbotInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredSlackInformer constructs a new informer for Slack type.
+// NewFilteredSlackbotInformer constructs a new informer for Slackbot type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredSlackInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredSlackbotInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.GatewayV1alpha1().Slacks(namespace).List(options)
+				return client.GatewayV1alpha1().Slackbots(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.GatewayV1alpha1().Slacks(namespace).Watch(options)
+				return client.GatewayV1alpha1().Slackbots(namespace).Watch(options)
 			},
 		},
-		&gatewayv1alpha1.Slack{},
+		&gatewayv1alpha1.Slackbot{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *slackInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredSlackInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *slackbotInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredSlackbotInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *slackInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&gatewayv1alpha1.Slack{}, f.defaultInformer)
+func (f *slackbotInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&gatewayv1alpha1.Slackbot{}, f.defaultInformer)
 }
 
-func (f *slackInformer) Lister() v1alpha1.SlackLister {
-	return v1alpha1.NewSlackLister(f.Informer().GetIndexer())
+func (f *slackbotInformer) Lister() v1alpha1.SlackbotLister {
+	return v1alpha1.NewSlackbotLister(f.Informer().GetIndexer())
 }
