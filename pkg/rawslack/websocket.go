@@ -2,6 +2,7 @@ package rawslack
 
 import (
 	"encoding/json"
+	"github.com/nlopes/slack"
 	"net/url"
 	"sync"
 	"time"
@@ -21,16 +22,16 @@ const (
 // Create this element with Client's NewRTM() or NewRTMWithOptions(*RTMOptions)
 type RTM struct {
 	// Client is the main API, embedded
-	Client
+	slack.Client
 
-	idGen        IDGenerator
+	idGen        slack.IDGenerator
 	pingInterval time.Duration
 	pingDeadman  *time.Timer
 
 	// Connection life-cycle
 	conn             *websocket.Conn
 	IncomingEvents   chan RTMEvent
-	outgoingMessages chan OutgoingMessage
+	outgoingMessages chan slack.OutgoingMessage
 	killChannel      chan bool
 	disconnected     chan struct{}
 	disconnectedm    *sync.Once
@@ -38,7 +39,7 @@ type RTM struct {
 	RawEvents        chan json.RawMessage
 
 	// UserDetails upon connection
-	info *Info
+	info *slack.Info
 
 	// useRTMStart should be set to true if you want to use
 	// rtm.start to connect to Slack, otherwise it will use
@@ -73,21 +74,21 @@ func (rtm *RTM) Disconnect() error {
 	case rtm.killChannel <- true:
 		return nil
 	case <-rtm.disconnected:
-		return ErrAlreadyDisconnected
+		return slack.ErrAlreadyDisconnected
 	}
 }
 
 // GetInfo returns the info structure received when calling
 // "startrtm", holding metadata needed to implement a full
 // chat client. It will be non-nil after a call to StartRTM().
-func (rtm *RTM) GetInfo() *Info {
+func (rtm *RTM) GetInfo() *slack.Info {
 	return rtm.info
 }
 
 // SendMessage submits a simple message through the websocket.  For
 // more complicated messages, use `rtm.PostMessage` with a complete
 // struct describing your attachments and all.
-func (rtm *RTM) SendMessage(msg *OutgoingMessage) {
+func (rtm *RTM) SendMessage(msg *slack.OutgoingMessage) {
 	if msg == nil {
 		rtm.Debugln("Error: Attempted to SendMessage(nil)")
 		return

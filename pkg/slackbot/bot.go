@@ -3,6 +3,7 @@ package slackbot
 import (
 	"context"
 	"fmt"
+	"github.com/n3wscott/gateway/pkg/rawslack"
 	"log"
 	"sync"
 
@@ -25,7 +26,7 @@ type Bot struct {
 	Err     chan error
 
 	client *slack.Client
-	rtm    *slack.RTM
+	rtm    *rawslack.RTM
 	ce     client.Client
 
 	domain    string
@@ -80,7 +81,8 @@ func NewBot(ctx context.Context) (*Bot, error) {
 	}
 
 	// Use RTM:
-	bot.rtm = bot.client.NewRTM()
+
+	bot.rtm = rawslack.NewRTM(bot.client)
 	go bot.rtm.ManageConnection()
 	go bot.manageRTM(ctx)
 

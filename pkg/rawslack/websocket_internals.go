@@ -2,6 +2,7 @@ package rawslack
 
 import (
 	"fmt"
+	"github.com/nlopes/slack"
 	"time"
 )
 
@@ -12,7 +13,7 @@ import (
 // ConnectedEvent is used for when we connect to Slack
 type ConnectedEvent struct {
 	ConnectionCount int // 1 = first time, 2 = second time
-	Info            *Info
+	Info            *slack.Info
 }
 
 // ConnectionErrorEvent contains information about a connection error
@@ -57,7 +58,7 @@ func (u UnmarshallingErrorEvent) Error() string {
 
 // MessageTooLongEvent is used when sending a message that is too long
 type MessageTooLongEvent struct {
-	Message   OutgoingMessage
+	Message   slack.OutgoingMessage
 	MaxLength int
 }
 
@@ -74,7 +75,7 @@ func (e *RateLimitEvent) Error() string {
 
 // OutgoingErrorEvent contains information in case there were errors sending messages
 type OutgoingErrorEvent struct {
-	Message  OutgoingMessage
+	Message  slack.OutgoingMessage
 	ErrorObj error
 }
 

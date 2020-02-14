@@ -3,6 +3,7 @@ package rawslack
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/nlopes/slack"
 )
 
 // AckMessage is used for messages received in reply to other messages
@@ -29,8 +30,22 @@ func (s RTMError) Error() string {
 	return fmt.Sprintf("Code %d - %s", s.Code, s.Msg)
 }
 
+// Ping contains information about a Ping Event
+type Ping struct {
+	ID        int    `json:"id"`
+	Type      string `json:"type"`
+	Timestamp int64  `json:"timestamp"`
+}
+
+// Pong contains information about a Pong Event
+type Pong struct {
+	Type      string `json:"type"`
+	ReplyTo   int    `json:"reply_to"`
+	Timestamp int64  `json:"timestamp"`
+}
+
 // MessageEvent represents a Slack Message (used as the event type for an incoming message)
-type MessageEvent Message
+//type MessageEvent Message
 
 // RTMEvent is the main wrapper. You will find all the other messages attached
 type RTMEvent struct {
@@ -41,13 +56,14 @@ type RTMEvent struct {
 // HelloEvent represents the hello event
 type HelloEvent struct{}
 
-// PresenceChangeEvent represents the presence change event
-type PresenceChangeEvent struct {
-	Type     string   `json:"type"`
-	Presence string   `json:"presence"`
-	User     string   `json:"user"`
-	Users    []string `json:"users"`
-}
+//
+//// PresenceChangeEvent represents the presence change event
+//type PresenceChangeEvent struct {
+//	Type     string   `json:"type"`
+//	Presence string   `json:"presence"`
+//	User     string   `json:"user"`
+//	Users    []string `json:"users"`
+//}
 
 // UserTypingEvent represents the user typing event
 type UserTypingEvent struct {
@@ -71,8 +87,8 @@ type ManualPresenceChangeEvent struct {
 
 // UserChangeEvent represents the user change event
 type UserChangeEvent struct {
-	Type string `json:"type"`
-	User User   `json:"user"`
+	Type string     `json:"type"`
+	User slack.User `json:"user"`
 }
 
 // EmojiChangedEvent represents the emoji changed event
@@ -100,14 +116,14 @@ type EmailDomainChangedEvent struct {
 
 // BotAddedEvent represents the bot added event
 type BotAddedEvent struct {
-	Type string `json:"type"`
-	Bot  Bot    `json:"bot"`
+	Type string    `json:"type"`
+	Bot  slack.Bot `json:"bot"`
 }
 
 // BotChangedEvent represents the bot changed event
 type BotChangedEvent struct {
-	Type string `json:"type"`
-	Bot  Bot    `json:"bot"`
+	Type string    `json:"type"`
+	Bot  slack.Bot `json:"bot"`
 }
 
 // AccountsChangedEvent represents the accounts changed event

@@ -95,7 +95,7 @@ type Msg struct {
 	DeleteOriginal  bool   `json:"delete_original"`
 
 	// Block type Message
-	//Blocks Blocks `json:"blocks,omitempty"`
+	Blocks Blocks `json:"blocks,omitempty"`
 }
 
 const (

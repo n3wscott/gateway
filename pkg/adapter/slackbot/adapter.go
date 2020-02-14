@@ -17,6 +17,7 @@ package slackbot
 
 import (
 	"context"
+	"knative.dev/pkg/source"
 	"log"
 
 	cloudevents "github.com/cloudevents/sdk-go"
@@ -57,7 +58,7 @@ func (a *Adapter) Start(stopCh <-chan struct{}) error {
 	return nil
 }
 
-func NewAdapter(ctx context.Context, aEnv adapter.EnvConfigAccessor, ceClient cloudevents.Client) adapter.Adapter {
+func NewAdapter(ctx context.Context, aEnv adapter.EnvConfigAccessor, ceClient cloudevents.Client, reporter source.StatsReporter) adapter.Adapter {
 	env := aEnv.(*envConfig) // Will always be our own envConfig type
 	_ = env
 	return &Adapter{

@@ -2,14 +2,57 @@ package slackbot
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	cloudevents "github.com/cloudevents/sdk-go"
+	"github.com/n3wscott/gateway/pkg/rawslack"
 	"github.com/n3wscott/gateway/pkg/slackbot/events"
 	"github.com/nlopes/slack"
 	"path"
 )
 
 func (s *Bot) manageRTM(ctx context.Context) {
+
+	for msg := range s.rtm.IncomingEvents {
+		fmt.Print("Event Received: ")
+		switch ev := msg.Data.(type) {
+
+		case *rawslack.ConnectingEvent:
+			fmt.Printf("connecting\n")
+		case *rawslack.ConnectedEvent:
+			fmt.Printf("connected\n")
+		case *rawslack.HelloEvent:
+			fmt.Printf("hello\n")
+		case *rawslack.LatencyReport:
+			fmt.Printf("latency\n")
+
+		case *rawslack.AckMessage:
+			fmt.Printf("ack %+v\n", ev)
+
+		case rawslack.RTMError:
+			fmt.Printf("error %+v\n", msg)
+
+		case json.RawMessage:
+			fmt.Printf("%s: %v\n", msg.Type, string(ev))
+
+			event := cloudevents.NewEvent(cloudevents.VersionV1)
+			event.SetDataContentType(cloudevents.ApplicationJSON)
+			event.SetType(events.Slack.Type(msg.Type))
+			event.SetSource("slackbot.gateway.todo")
+			_ = event.SetData(ev)
+
+			if _, _, err := s.ce.Send(ctx, event); err != nil {
+				fmt.Printf("failed to send cloudevent: %v\n", err)
+			}
+
+		default:
+
+			fmt.Printf("Unexpected(%T): %v\n", msg.Data, msg.Data)
+		}
+	}
+}
+
+func (s *Bot) manageRTM_old(ctx context.Context) {
 	if team, err := s.client.GetTeamInfo(); err == nil {
 		fmt.Printf("Slack Team: %+v", team)
 		s.domain = team.Domain

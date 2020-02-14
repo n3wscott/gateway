@@ -2,15 +2,15 @@ package rawslack
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/nlopes/slack"
 	"io"
 	"net/http"
 	stdurl "net/url"
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/n3wscott/gateway/pkg/rawslack/internal/errorsx"
-	"github.com/n3wscott/gateway/pkg/rawslack/internal/timex"
 )
 
 // ManageConnection can be called on a Slack RTM instance returned by the
@@ -29,7 +29,7 @@ import (
 func (rtm *RTM) ManageConnection() {
 	var (
 		err  error
-		info *Info
+		info *slack.Info
 		conn *websocket.Conn
 	)
 
@@ -78,7 +78,7 @@ func (rtm *RTM) ManageConnection() {
 // has been successfully opened.
 // If useRTMStart is false then it uses rtm.connect to create the connection,
 // otherwise it uses rtm.start.
-func (rtm *RTM) connect(connectionCount int, useRTMStart bool) (*Info, *websocket.Conn, error) {
+func (rtm *RTM) connect(connectionCount int, useRTMStart bool) (*slack.Info, *websocket.Conn, error) {
 	const (
 		errInvalidAuth      = "invalid_auth"
 		errInactiveAccount  = "account_inactive"
@@ -124,12 +124,12 @@ func (rtm *RTM) connect(connectionCount int, useRTMStart bool) (*Info, *websocke
 				rtm.IncomingEvents <- RTMEvent{"invalid_auth", &InvalidAuthEvent{}}
 				return nil, nil, err
 			}
-		case *RateLimitedError:
+		case *slack.RateLimitedError:
 			backoff = actual.RetryAfter
 		default:
 		}
 
-		backoff = timex.Max(backoff, boff.Duration())
+		backoff = Max(backoff, boff.Duration())
 		// any other errors are treated as recoverable and we try again after
 		// sending the event along the IncomingEvents channel
 		rtm.IncomingEvents <- RTMEvent{"connection_error", &ConnectionErrorEvent{
@@ -148,19 +148,41 @@ func (rtm *RTM) connect(connectionCount int, useRTMStart bool) (*Info, *websocke
 		case <-time.After(backoff): // retry after the backoff.
 		case intentional := <-rtm.killChannel:
 			if intentional {
-				rtm.killConnection(intentional, ErrRTMDisconnected)
-				return nil, nil, ErrRTMDisconnected
+				rtm.killConnection(intentional, slack.ErrRTMDisconnected)
+				return nil, nil, slack.ErrRTMDisconnected
 			}
 		case <-rtm.disconnected:
-			return nil, nil, ErrRTMDisconnected
+			return nil, nil, slack.ErrRTMDisconnected
 		}
 	}
+}
+
+// StatusCodeError represents an http response error.
+// type httpStatusCode interface { HTTPStatusCode() int } to handle it.
+type statusCodeError struct {
+	Code   int
+	Status string
+}
+
+func (t statusCodeError) Error() string {
+	return fmt.Sprintf("slack server error: %s", t.Status)
+}
+
+func (t statusCodeError) HTTPStatusCode() int {
+	return t.Code
+}
+
+func (t statusCodeError) Retryable() bool {
+	if t.Code >= 500 || t.Code == http.StatusTooManyRequests {
+		return true
+	}
+	return false
 }
 
 // startRTMAndDial attempts to connect to the slack websocket. If useRTMStart is true,
 // then it returns the  full information returned by the "rtm.start" method on the
 // slack API. Else it uses the "rtm.connect" method to connect
-func (rtm *RTM) startRTMAndDial(useRTMStart bool) (info *Info, _ *websocket.Conn, err error) {
+func (rtm *RTM) startRTMAndDial(useRTMStart bool) (info *slack.Info, _ *websocket.Conn, err error) {
 	var (
 		url string
 	)
@@ -234,11 +256,11 @@ func (rtm *RTM) handleEvents() {
 		select {
 		// catch "stop" signal on channel close
 		case intentional := <-rtm.killChannel:
-			_ = rtm.killConnection(intentional, errorsx.String("signaled"))
+			_ = rtm.killConnection(intentional, errors.New("signaled"))
 			return
 		// detect when the connection is dead.
 		case <-rtm.pingDeadman.C:
-			_ = rtm.killConnection(false, errorsx.String("deadman switch triggered"))
+			_ = rtm.killConnection(false, errors.New("deadman switch triggered"))
 			return
 		// send pings on ticker interval
 		case <-ticker.C:
@@ -258,7 +280,7 @@ func (rtm *RTM) handleEvents() {
 		case rawEvent := <-rtm.RawEvents:
 			switch rtm.handleRawEvent(rawEvent) {
 			case rtmEventTypeGoodbye:
-				_ = rtm.killConnection(false, errorsx.String("goodbye detected"))
+				_ = rtm.killConnection(false, errors.New("goodbye detected"))
 				return
 			default:
 			}
@@ -295,7 +317,7 @@ func (rtm *RTM) sendWithDeadline(msg interface{}) error {
 //
 // It does not currently detect if a outgoing message fails due to a disconnect
 // and instead lets a future failed 'PING' detect the failed connection.
-func (rtm *RTM) sendOutgoingMessage(msg OutgoingMessage) {
+func (rtm *RTM) sendOutgoingMessage(msg slack.OutgoingMessage) {
 	rtm.Debugln("Sending message:", msg)
 	if len([]rune(msg.Text)) > MaxMessageTextLength {
 		rtm.IncomingEvents <- RTMEvent{"outgoing_error", &MessageTooLongEvent{
@@ -375,6 +397,11 @@ func (rtm *RTM) receiveIncomingEvent() error {
 	return nil
 }
 
+// Event contains the event type
+type Event struct {
+	Type string `json:"type,omitempty"`
+}
+
 // handleRawEvent takes a raw JSON message received from the slack websocket
 // and handles the encoded event.
 // returns the event type of the message.
@@ -439,7 +466,6 @@ func (rtm *RTM) handlePong(event json.RawMessage) {
 	rtm.resetDeadman()
 
 	if err := json.Unmarshal(event, &p); err != nil {
-		rtm.Client.log.Println("RTM Error unmarshalling 'pong' event:", err)
 		return
 	}
 
@@ -482,93 +508,16 @@ func (rtm *RTM) handleEvent(typeStr string, event json.RawMessage) {
 	//rtm.IncomingEvents <- RTMEvent{typeStr, recvEvent}
 }
 
-// EventMapping holds a mapping of event names to their corresponding struct
-// implementations. The structs should be instances of the unmarshalling
-// target for the matching event type.
-var EventMapping = map[string]interface{}{
-	"message":         MessageEvent{},
-	"presence_change": PresenceChangeEvent{},
-	"user_typing":     UserTypingEvent{},
+func Max(values ...time.Duration) time.Duration {
+	var (
+		max time.Duration
+	)
 
-	"channel_marked":          ChannelMarkedEvent{},
-	"channel_created":         ChannelCreatedEvent{},
-	"channel_joined":          ChannelJoinedEvent{},
-	"channel_left":            ChannelLeftEvent{},
-	"channel_deleted":         ChannelDeletedEvent{},
-	"channel_rename":          ChannelRenameEvent{},
-	"channel_archive":         ChannelArchiveEvent{},
-	"channel_unarchive":       ChannelUnarchiveEvent{},
-	"channel_history_changed": ChannelHistoryChangedEvent{},
+	for _, v := range values {
+		if v > max {
+			max = v
+		}
+	}
 
-	"dnd_updated":      DNDUpdatedEvent{},
-	"dnd_updated_user": DNDUpdatedEvent{},
-
-	"im_created":         IMCreatedEvent{},
-	"im_open":            IMOpenEvent{},
-	"im_close":           IMCloseEvent{},
-	"im_marked":          IMMarkedEvent{},
-	"im_history_changed": IMHistoryChangedEvent{},
-
-	"group_marked":          GroupMarkedEvent{},
-	"group_open":            GroupOpenEvent{},
-	"group_joined":          GroupJoinedEvent{},
-	"group_left":            GroupLeftEvent{},
-	"group_close":           GroupCloseEvent{},
-	"group_rename":          GroupRenameEvent{},
-	"group_archive":         GroupArchiveEvent{},
-	"group_unarchive":       GroupUnarchiveEvent{},
-	"group_history_changed": GroupHistoryChangedEvent{},
-
-	"file_created":         FileCreatedEvent{},
-	"file_shared":          FileSharedEvent{},
-	"file_unshared":        FileUnsharedEvent{},
-	"file_public":          FilePublicEvent{},
-	"file_private":         FilePrivateEvent{},
-	"file_change":          FileChangeEvent{},
-	"file_deleted":         FileDeletedEvent{},
-	"file_comment_added":   FileCommentAddedEvent{},
-	"file_comment_edited":  FileCommentEditedEvent{},
-	"file_comment_deleted": FileCommentDeletedEvent{},
-
-	"pin_added":   PinAddedEvent{},
-	"pin_removed": PinRemovedEvent{},
-
-	"star_added":   StarAddedEvent{},
-	"star_removed": StarRemovedEvent{},
-
-	"reaction_added":   ReactionAddedEvent{},
-	"reaction_removed": ReactionRemovedEvent{},
-
-	"pref_change": PrefChangeEvent{},
-
-	"team_join":              TeamJoinEvent{},
-	"team_rename":            TeamRenameEvent{},
-	"team_pref_change":       TeamPrefChangeEvent{},
-	"team_domain_change":     TeamDomainChangeEvent{},
-	"team_migration_started": TeamMigrationStartedEvent{},
-
-	"manual_presence_change": ManualPresenceChangeEvent{},
-
-	"user_change": UserChangeEvent{},
-
-	"emoji_changed": EmojiChangedEvent{},
-
-	"commands_changed": CommandsChangedEvent{},
-
-	"email_domain_changed": EmailDomainChangedEvent{},
-
-	"bot_added":   BotAddedEvent{},
-	"bot_changed": BotChangedEvent{},
-
-	"accounts_changed": AccountsChangedEvent{},
-
-	"reconnect_url": ReconnectUrlEvent{},
-
-	"member_joined_channel": MemberJoinedChannelEvent{},
-	"member_left_channel":   MemberLeftChannelEvent{},
-
-	"subteam_created":      SubteamCreatedEvent{},
-	"subteam_self_added":   SubteamSelfAddedEvent{},
-	"subteam_self_removed": SubteamSelfRemovedEvent{},
-	"subteam_updated":      SubteamUpdatedEvent{},
+	return max
 }
