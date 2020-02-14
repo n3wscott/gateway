@@ -89,6 +89,7 @@ func (in *SlackbotList) DeepCopyObject() runtime.Object {
 func (in *SlackbotSpec) DeepCopyInto(out *SlackbotSpec) {
 	*out = *in
 	in.SourceSpec.DeepCopyInto(&out.SourceSpec)
+	out.Secret = in.Secret
 	return
 }
 

@@ -36,17 +36,13 @@ import (
 	pkgreconciler "knative.dev/pkg/reconciler"
 	"knative.dev/pkg/resolver"
 
-	eventinglisters "knative.dev/eventing/pkg/client/listers/eventing/v1alpha1"
-
 	"github.com/n3wscott/gateway/pkg/apis/gateway/v1alpha1"
 	versioned "github.com/n3wscott/gateway/pkg/client/clientset/versioned"
 	reconcilerslack "github.com/n3wscott/gateway/pkg/client/injection/reconciler/gateway/v1alpha1/slackbot"
 	listers "github.com/n3wscott/gateway/pkg/client/listers/gateway/v1alpha1"
 	"github.com/n3wscott/gateway/pkg/reconciler/slackbot/resources"
-)
-
-var (
-	deploymentGVK          = appsv1.SchemeGroupVersion.WithKind("Deployment")
+	corev1listers "k8s.io/client-go/listers/core/v1"
+	eventinglisters "knative.dev/eventing/pkg/client/listers/eventing/v1alpha1"
 )
 
 // newReconciledNormal makes a new reconciler event with event type Normal, and
@@ -81,10 +77,10 @@ type Reconciler struct {
 	ReceiveAdapterImage string `envconfig:"SLACKBOT_IMAGE" required:"true"`
 
 	// listers index properties about resources
-	slackbotLister listers.SlackbotLister
-	deploymentLister   appsv1listers.DeploymentLister
-	eventTypeLister    eventinglisters.EventTypeLister
-
+	slackbotLister        listers.SlackbotLister
+	deploymentLister      appsv1listers.DeploymentLister
+	eventTypeLister       eventinglisters.EventTypeLister
+	serviceLister         corev1listers.ServiceLister
 	samplesourceClientSet versioned.Interface
 
 	sinkResolver *resolver.URIResolver
@@ -96,6 +92,7 @@ var _ reconcilerslack.Interface = (*Reconciler)(nil)
 // ReconcileKind implements Interface.ReconcileKind.
 func (r *Reconciler) ReconcileKind(ctx context.Context, source *v1alpha1.Slackbot) pkgreconciler.Event {
 	source.Status.InitializeConditions()
+	source.Status.ObservedGeneration = source.Generation
 
 	dest := source.Spec.Sink.DeepCopy()
 	if dest.Ref != nil {
@@ -122,6 +119,11 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, source *v1alpha1.Slackbo
 	}
 	if event != nil {
 		return event
+	}
+
+	logging.FromContext(ctx).Infow("Reconciling Service")
+	if err := r.reconcileService(ctx, source); err != nil {
+		return err
 	}
 
 	return newReconciledNormal(source.Namespace, source.Name)
@@ -156,9 +158,9 @@ func (r *Reconciler) createReceiveAdapter(ctx context.Context, src *v1alpha1.Sla
 		if ra, err = r.kubeClientSet.AppsV1().Deployments(src.Namespace).Update(ra); err != nil {
 			return ra, err
 		}
-		return ra, newDeploymentUpdated(ra.Namespace, ra.Name)
+		return ra, nil //newDeploymentUpdated(ra.Namespace, ra.Name)
 	} else {
-		logging.FromContext(ctx).Debug("Reusing existing receive adapter", zap.Any("receiveAdapter", ra))
+		logging.FromContext(ctx).Debugw("Reusing existing receive adapter", zap.Any("receiveAdapter", ra))
 	}
 	return ra, nil
 }
@@ -183,7 +185,7 @@ func (r *Reconciler) getReceiveAdapter(ctx context.Context, src *v1alpha1.Slackb
 		LabelSelector: r.getLabelSelector(src).String(),
 	})
 	if err != nil {
-		logging.FromContext(ctx).Error("Unable to list deployments: %v", zap.Error(err))
+		logging.FromContext(ctx).Errorw("Unable to list deployments: %v", zap.Error(err))
 		return nil, err
 	}
 	for _, dep := range dl.Items {
@@ -196,6 +198,53 @@ func (r *Reconciler) getReceiveAdapter(ctx context.Context, src *v1alpha1.Slackb
 
 func (r *Reconciler) getLabelSelector(src *v1alpha1.Slackbot) labels.Selector {
 	return labels.SelectorFromSet(resources.Labels(src.Name))
+}
+
+func (r *Reconciler) reconcileService(ctx context.Context, sb *v1alpha1.Slackbot) error {
+	svc, err := r.getService(ctx, sb, labels.SelectorFromSet(resources.Labels(sb.Name)))
+
+	if apierrors.IsNotFound(err) {
+		svc = resources.MakeService(resources.ReceiveAdapterArgs{
+			Source: sb,
+		})
+
+		var err error
+		svc, err = r.kubeClientSet.CoreV1().Services(sb.Namespace).Create(svc)
+		if err != nil || svc == nil {
+			msg := "Failed to make Service."
+			if err != nil {
+				msg = msg + " " + err.Error()
+			}
+			sb.Status.MarkAddress(nil)
+			return fmt.Errorf("failed to create Job: %s", err)
+		}
+	} else if err != nil {
+		sb.Status.MarkAddress(nil)
+		return err
+	}
+
+	url := &apis.URL{
+		Scheme: "http",
+		Host:   fmt.Sprintf("%s.%s.svc.cluster.local", svc.Name, svc.Namespace),
+	}
+
+	sb.Status.MarkAddress(url)
+	return nil
+}
+
+func (r *Reconciler) getService(ctx context.Context, owner metav1.Object, ls labels.Selector) (*corev1.Service, error) {
+	list, err := r.serviceLister.List(ls)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, i := range list {
+		if metav1.IsControlledBy(i, owner) {
+			return i, nil
+		}
+	}
+
+	return nil, apierrors.NewNotFound(schema.GroupResource{}, "")
 }
 
 // makeEventSource computes the Cloud Event source attribute for the given source

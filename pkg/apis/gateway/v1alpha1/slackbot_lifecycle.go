@@ -16,28 +16,31 @@ limitations under the License.
 
 package v1alpha1
 
-
 import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"knative.dev/eventing/pkg/apis/duck"
 	"knative.dev/pkg/apis"
+	duckv1 "knative.dev/pkg/apis/duck/v1"
 )
 
 const (
-	// SlackConditionReady has status True when the Slackbot is ready to send events.
-	SlackConditionReady = apis.ConditionReady
+	// SlackbotConditionReady has status True when the Slackbot is ready to send events.
+	SlackbotConditionReady = apis.ConditionReady
 
-	// SlackConditionSinkProvided has status True when the Slackbot has been configured with a sink target.
-	SlackConditionSinkProvided apis.ConditionType = "SinkProvided"
+	// SlackbotConditionSinkProvided has status True when the Slackbot has been configured with a sink target.
+	SlackbotConditionSinkProvided apis.ConditionType = "SinkProvided"
 
-	// SlackConditionDeployed has status True when the Slackbot has had it's deployment created.
-	SlackConditionDeployed apis.ConditionType = "Deployed"
+	// SlackbotConditionDeployed has status True when the Slackbot has had it's deployment created.
+	SlackbotConditionDeployed apis.ConditionType = "Deployed"
+
+	SlackbotConditionAddressable apis.ConditionType = "Addressable"
 )
 
 var slackCondSet = apis.NewLivingConditionSet(
-	SlackConditionSinkProvided,
-	SlackConditionDeployed,
+	SlackbotConditionSinkProvided,
+	SlackbotConditionDeployed,
+	SlackbotConditionAddressable,
 )
 
 // GetCondition returns the condition currently associated with the given type, or nil.
@@ -55,14 +58,14 @@ func (s *SlackbotStatus) MarkSinkWarnRefDeprecated(uri *apis.URL) {
 	s.SinkURI = uri
 	if len(uri.String()) > 0 {
 		c := apis.Condition{
-			Type:     SlackConditionSinkProvided,
+			Type:     SlackbotConditionSinkProvided,
 			Status:   corev1.ConditionTrue,
 			Severity: apis.ConditionSeverityError,
 			Message:  "Using deprecated object ref fields when specifying spec.sink. These will be removed in a future release. Update to spec.sink.ref.",
 		}
 		slackCondSet.Manage(s).SetCondition(c)
 	} else {
-		slackCondSet.Manage(s).MarkUnknown(SlackConditionSinkProvided, "SinkEmpty", "Sink has resolved to empty.%s", "")
+		slackCondSet.Manage(s).MarkUnknown(SlackbotConditionSinkProvided, "SinkEmpty", "Sink has resolved to empty.%s", "")
 	}
 }
 
@@ -70,26 +73,39 @@ func (s *SlackbotStatus) MarkSinkWarnRefDeprecated(uri *apis.URL) {
 func (s *SlackbotStatus) MarkSink(uri *apis.URL) {
 	s.SinkURI = uri
 	if len(uri.String()) > 0 {
-		slackCondSet.Manage(s).MarkTrue(SlackConditionSinkProvided)
+		slackCondSet.Manage(s).MarkTrue(SlackbotConditionSinkProvided)
 	} else {
-		slackCondSet.Manage(s).MarkUnknown(SlackConditionSinkProvided, "SinkEmpty", "Sink has resolved to empty.%s", "")
+		slackCondSet.Manage(s).MarkUnknown(SlackbotConditionSinkProvided, "SinkEmpty", "Sink has resolved to empty.%s", "")
 	}
 }
 
 // MarkNoSink sets the condition that the source does not have a sink configured.
 func (s *SlackbotStatus) MarkNoSink(reason, messageFormat string, messageA ...interface{}) {
-	slackCondSet.Manage(s).MarkFalse(SlackConditionSinkProvided, reason, messageFormat, messageA...)
+	slackCondSet.Manage(s).MarkFalse(SlackbotConditionSinkProvided, reason, messageFormat, messageA...)
 }
 
 // PropagateDeploymentAvailability uses the availability of the provided Deployment to determine if
-// SlackConditionDeployed should be marked as true or false.
+// SlackbotConditionDeployed should be marked as true or false.
 func (s *SlackbotStatus) PropagateDeploymentAvailability(d *appsv1.Deployment) {
 	if duck.DeploymentIsAvailable(&d.Status, false) {
-		slackCondSet.Manage(s).MarkTrue(SlackConditionDeployed)
+		slackCondSet.Manage(s).MarkTrue(SlackbotConditionDeployed)
 	} else {
 		// I don't know how to propagate the status well, so just give the name of the Deployment
 		// for now.
-		slackCondSet.Manage(s).MarkFalse(SlackConditionDeployed, "DeploymentUnavailable", "The Deployment '%s' is unavailable.", d.Name)
+		slackCondSet.Manage(s).MarkFalse(SlackbotConditionDeployed, "DeploymentUnavailable", "The Deployment '%s' is unavailable.", d.Name)
+	}
+}
+
+func (ss *SlackbotStatus) MarkAddress(url *apis.URL) {
+	if ss.Address == nil {
+		ss.Address = &duckv1.Addressable{}
+	}
+	if url != nil {
+		ss.Address.URL = url
+		slackCondSet.Manage(ss).MarkTrue(SlackbotConditionAddressable)
+	} else {
+		ss.Address.URL = nil
+		slackCondSet.Manage(ss).MarkFalse(SlackbotConditionAddressable, "ServiceUnavailable", "Service was not created.")
 	}
 }
 

@@ -17,13 +17,15 @@ limitations under the License.
 package resources
 
 import (
+	"context"
 	"fmt"
-
+	"github.com/n3wscott/gateway/pkg/slackbot"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/eventing/pkg/utils"
 	"knative.dev/pkg/apis"
+	duckv1 "knative.dev/pkg/apis/duck/v1"
 	"knative.dev/pkg/kmeta"
 
 	"github.com/n3wscott/gateway/pkg/apis/gateway/v1alpha1"
@@ -42,13 +44,14 @@ type ReceiveAdapterArgs struct {
 // MakeReceiveAdapter generates (but does not insert into K8s) the Receive Adapter Deployment for
 // Sample sources.
 func MakeReceiveAdapter(args *ReceiveAdapterArgs) *v1.Deployment {
+	ctx := context.Background()
 	defaultServiceAccount := "default"
 	_, err := apis.ParseURL(args.SinkURI.String())
 	if err != nil {
 		panic("should NEVER happen")
 	}
 	replicas := int32(1)
-	return &v1.Deployment{
+	dep := &v1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: args.Source.Namespace,
 			Name:      utils.GenerateFixedName(args.Source, fmt.Sprintf("samplesource-%s", args.Source.Name)),
@@ -79,6 +82,17 @@ func MakeReceiveAdapter(args *ReceiveAdapterArgs) *v1.Deployment {
 			},
 		},
 	}
+
+	wp := &duckv1.WithPod{
+		Spec: duckv1.WithPodSpec{
+			Template: duckv1.PodSpecable(dep.Spec.Template),
+		},
+	}
+	sb := slackbot.NewBinding(args.Source.Spec.Secret)
+	sb.Do(ctx, wp)
+	dep.Spec.Template = corev1.PodTemplateSpec(wp.Spec.Template)
+
+	return dep
 }
 
 func makeEnv(eventSource, sinkURI string, spec *v1alpha1.SlackbotSpec) []corev1.EnvVar {

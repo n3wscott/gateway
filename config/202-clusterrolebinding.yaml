@@ -15,17 +15,17 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: gateway-controller-rolebinding
+  name: gateway-controller-admin
   labels:
-    gateway.n3wscott.com/release: devel
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: gateway-controller
+    samples.knative.dev/release: devel
 subjects:
-- kind: ServiceAccount
-  name: gateway-controller
-  namespace: n3wscott-gateway
+  - kind: ServiceAccount
+    name: controller
+    namespace: n3wscott-gateway
+roleRef:
+  kind: ClusterRole
+  name: gateway-admin
+  apiGroup: rbac.authorization.k8s.io
 
 ---
 
@@ -37,7 +37,7 @@ metadata:
     gateway.n3wscott.com/release: devel
 subjects:
 - kind: ServiceAccount
-  name: gateway-controller
+  name: controller
   namespace: n3wscott-gateway
 # An aggregated ClusterRole for all Addressable CRDs.
 # Ref: https://knative.dev/eventing/blob/master/config/200-addressable-resolvers-clusterrole.yaml

@@ -19,11 +19,11 @@ limitations under the License.
 package slackbot
 
 import (
-	"context"
+	context "context"
 
 	slackbot "github.com/n3wscott/gateway/pkg/client/injection/informers/gateway/v1alpha1/slackbot"
 	v1alpha1slackbot "github.com/n3wscott/gateway/pkg/client/injection/reconciler/gateway/v1alpha1/slackbot"
-	"knative.dev/pkg/configmap"
+	configmap "knative.dev/pkg/configmap"
 	controller "knative.dev/pkg/controller"
 	logging "knative.dev/pkg/logging"
 )

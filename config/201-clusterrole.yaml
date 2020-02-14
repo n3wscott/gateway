@@ -12,59 +12,43 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: gateway-admin
+  labels:
+    samples.knative.dev/release: devel
+aggregationRule:
+  clusterRoleSelectors:
+    - matchLabels:
+        gateway.n3wscott.com/controller: "true"
+rules: [] # Rules are automatically filled in by the controller manager.
+
+---
+
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: gateway-controller
+  name: gateway-core
   labels:
     gateway.n3wscott.com/release: devel
+    gateway.n3wscott.com/controller: "true"
 rules:
-- apiGroups:
-  - apps
-  resources:
-  - deployments
-  verbs: &everything
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
-  - clusterroles
-  verbs:
-  - list
-- apiGroups:
-  - ""
-  resources:
-  - events
-  verbs: *everything
-- apiGroups:
-  - gateway.n3wscott.com
-  resources:
-  - slackbots
-  verbs: *everything
-- apiGroups:
-  - gateway.n3wscott.com
-  resources:
-  - slackbots/status
-  - slackbots/finalizers
-  verbs:
-  - get
-  - update
-  - patch
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  - configmaps
-  verbs:
-  - get
-  - list
-  - watch
+  - apiGroups: [""]
+    resources: ["configmaps", "services", "secrets", "events"]
+    verbs: ["get", "list", "create", "update", "delete", "patch", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "deployments/finalizers"] # finalizers are needed for the owner reference of the webhook
+    verbs: ["get", "list", "create", "update", "delete", "patch", "watch"]
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources: ["mutatingwebhookconfigurations", "validatingwebhookconfigurations"]
+    verbs: ["get", "list", "create", "update", "delete", "patch", "watch"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "create", "update", "delete", "patch", "watch"]
+  - apiGroups: ["gateway.n3wscott.com"]
+    resources: ["*"]
+    verbs: ["get", "list", "create", "update", "delete", "deletecollection", "patch", "watch"]
 
 ---
 # The role is needed for the aggregated role source-observer in knative-eventing to provide readonly access to "Sources".

@@ -17,12 +17,16 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"knative.dev/pkg/apis"
 	"knative.dev/pkg/apis/duck"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 	"knative.dev/pkg/kmeta"
+	"knative.dev/pkg/webhook/resourcesemantics"
 )
 
 // +genclient
@@ -47,6 +51,8 @@ func (s *Slackbot) GetGroupVersionKind() schema.GroupVersionKind {
 	return SchemeGroupVersion.WithKind("Slackbot")
 }
 
+var _ resourcesemantics.GenericCRD = (*Slackbot)(nil)
+
 // Check that Slackbot is a runtime.Object.
 var _ runtime.Object = (*Slackbot)(nil)
 
@@ -64,6 +70,9 @@ type SlackbotSpec struct {
 	// * CloudEventOverrides - defines overrides to control the output format
 	//   and modifications of the event sent to the sink.
 	duckv1.SourceSpec `json:",inline"`
+
+	// Secret holds a reference to a secret containing the Slack auth data.
+	Secret corev1.LocalObjectReference `json:"secret"`
 
 	// Interval is the time interval between events.
 	//
@@ -96,4 +105,13 @@ type SlackbotList struct {
 	metav1.ListMeta `json:"metadata"`
 
 	Items []Slackbot `json:"items"`
+}
+
+// TODO: implement
+func (in *Slackbot) SetDefaults(context.Context) {
+}
+
+// TODO: implement
+func (in *Slackbot) Validate(context.Context) *apis.FieldError {
+	return nil
 }

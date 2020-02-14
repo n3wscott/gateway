@@ -19,7 +19,7 @@ limitations under the License.
 package slackbot
 
 import (
-	"context"
+	context "context"
 
 	versionedscheme "github.com/n3wscott/gateway/pkg/client/clientset/versioned/scheme"
 	injectionclient "github.com/n3wscott/gateway/pkg/client/injection/client"
@@ -36,11 +36,21 @@ import (
 
 const (
 	defaultControllerAgentName = "slackbot-controller"
-	defaultFinalizerName       = "slackbot"
+	defaultFinalizerName       = "slackbots.gateway.n3wscott.com"
+	defaultQueueName           = "slackbots"
 )
 
-func NewImpl(ctx context.Context, r Interface) *controller.Impl {
+// NewImpl returns a controller.Impl that handles queuing and feeding work from
+// the queue through an implementation of controller.Reconciler, delegating to
+// the provided Interface and optional Finalizer methods. OptionsFn is used to return
+// controller.Options to be used but the internal reconciler.
+func NewImpl(ctx context.Context, r Interface, optionsFns ...controller.OptionsFn) *controller.Impl {
 	logger := logging.FromContext(ctx)
+
+	// Check the options function input. It should be 0 or 1.
+	if len(optionsFns) > 1 {
+		logger.Fatalf("up to one options function is supported, found %d", len(optionsFns))
+	}
 
 	slackbotInformer := slackbot.Get(ctx)
 
@@ -63,14 +73,21 @@ func NewImpl(ctx context.Context, r Interface) *controller.Impl {
 		}()
 	}
 
-	c := &reconcilerImpl{
-		Client:        injectionclient.Get(ctx),
-		Lister:        slackbotInformer.Lister(),
-		Recorder:      recorder,
-		FinalizerName: defaultFinalizerName,
-		reconciler:    r,
+	rec := &reconcilerImpl{
+		Client:     injectionclient.Get(ctx),
+		Lister:     slackbotInformer.Lister(),
+		Recorder:   recorder,
+		reconciler: r,
 	}
-	impl := controller.NewImpl(c, logger, "slackbots")
+	impl := controller.NewImpl(rec, logger, defaultQueueName)
+
+	// Pass impl to the options. Save any optional results.
+	for _, fn := range optionsFns {
+		opts := fn(impl)
+		if opts.ConfigStore != nil {
+			rec.configStore = opts.ConfigStore
+		}
+	}
 
 	return impl
 }

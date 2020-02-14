@@ -166,6 +166,14 @@
   version = "v4.5.0"
 
 [[projects]]
+  digest = "1:416b666cb79f02526f115d16aba8b318b854f3c964107081311e9df6a08b39a9"
+  name = "github.com/gobuffalo/envy"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "3dbe4c98c1c77e4a8fac053251c262a85e048f21"
+  version = "v1.9.0"
+
+[[projects]]
   digest = "1:2b0e6c0bea11257c646616ebd6a62be0ef2b6a0fd8210ac3caeaf57ee136123b"
   name = "github.com/gogo/protobuf"
   packages = [
@@ -278,6 +286,14 @@
   version = "v0.3.1"
 
 [[projects]]
+  digest = "1:d5344bb08f1d8dc55f9a513ac4f971a9c8baeb73690b7cde56f4fe8a9143ef62"
+  name = "github.com/gorilla/websocket"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "c3e18be99d19e6b3e8f1559eea2c161a665c4b6b"
+  version = "v1.4.1"
+
+[[projects]]
   digest = "1:e9c0bf861ea69dd6de1ff7ac2a0485e84743e163853ca973177fba7a50d1b769"
   name = "github.com/grpc-ecosystem/grpc-gateway"
   packages = [
@@ -316,6 +332,14 @@
   revision = "c2b33e84"
 
 [[projects]]
+  digest = "1:da62aa6632d04e080b8a8b85a59ed9ed1550842a0099a55f3ae3a20d02a3745a"
+  name = "github.com/joho/godotenv"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "23d116af351c84513e1946b527c88823e476be13"
+  version = "v1.3.0"
+
+[[projects]]
   digest = "1:996dd5b4e2def9c256d4aa732db9a2d16d00a5eaf264139fa4bce5a4d2dc5fde"
   name = "github.com/json-iterator/go"
   packages = ["."]
@@ -332,12 +356,12 @@
   version = "v1.4.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:0e9bfc47ab9941ecc3344e580baca5deb4091177e84dd9773b48b38ec26b93d5"
-  name = "github.com/mattbaird/jsonpatch"
+  digest = "1:56dbf15e091bf7926cb33a57cb6bdfc658fc6d3498d2f76f10a97ce7856f1fde"
+  name = "github.com/markbates/inflect"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "81af80346b1a01caae0cbc27fd3c1ba5b11e189f"
+  revision = "24b83195037b3bc61fcda2d28b7b0518bce293b6"
+  version = "v1.0.4"
 
 [[projects]]
   digest = "1:5985ef4caf91ece5d54817c11ea25f182697534f8ae6521eadcd628c142ac4b6"
@@ -362,6 +386,19 @@
   pruneopts = "NUT"
   revision = "4b7aa43c6742a2c18fdef89dd197aaae7dac7ccd"
   version = "1.0.1"
+
+[[projects]]
+  digest = "1:75aa2d27470d17962a1bb00b8fa949c8c78ca278d1aa61632810028ae34d1cf2"
+  name = "github.com/nlopes/slack"
+  packages = [
+    ".",
+    "internal/errorsx",
+    "internal/timex",
+    "slackutilsx",
+  ]
+  pruneopts = "NUT"
+  revision = "1af34b6bda3d43878255fff7bd2884ea0c23295e"
+  version = "v0.6.0"
 
 [[projects]]
   digest = "1:1a0de55901552615e2b2f24bdb51431634165e74745b042a3ec11c3e97ce5843"
@@ -445,6 +482,18 @@
   pruneopts = "NUT"
   revision = "45fbe1491cdd47d74d1bf1396286d67faee8b8b5"
   version = "v3.0.0"
+
+[[projects]]
+  digest = "1:e09ada96a5a41deda4748b1659cc8953961799e798aea557257b56baee4ecaf3"
+  name = "github.com/rogpeppe/go-internal"
+  packages = [
+    "modfile",
+    "module",
+    "semver",
+  ]
+  pruneopts = "NUT"
+  revision = "bc89b17ba21ce5b8a495fa55a94e3fe32ecf4ed8"
+  version = "v1.5.2"
 
 [[projects]]
   digest = "1:d917313f309bda80d27274d53985bc65651f81a5b66b820749ac7f8ef061fd04"
@@ -684,6 +733,14 @@
   ]
   pruneopts = "NUT"
   revision = "f5828fc9a10359e54e99dbe0f1eb477417b1ff24"
+
+[[projects]]
+  digest = "1:8392b5c29adedc5f85c66b48bb53b6c49dd91d8540f3cad5d43ef7277946718f"
+  name = "gomodules.xyz/jsonpatch"
+  packages = ["v2"]
+  pruneopts = "NUT"
+  revision = "e8422f09d27ee2c8cfb2c7f8089eb9eeb0764849"
+  version = "v2.0.1"
 
 [[projects]]
   branch = "master"
@@ -1236,7 +1293,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:3e85a1ba2f762dd2ff12b7ec5ccc0a67600a75909504695d137ad1f21d6b6171"
+  digest = "1:bcd98fce14177993677d7e24b4acba7da513afdd159336bd28480faf60d7103f"
   name = "knative.dev/pkg"
   packages = [
     "apis",
@@ -1247,7 +1304,11 @@
     "changeset",
     "client/injection/ducks/duck/v1/addressable",
     "client/injection/kube/client",
+    "client/injection/kube/informers/admissionregistration/v1beta1/mutatingwebhookconfiguration",
+    "client/injection/kube/informers/admissionregistration/v1beta1/validatingwebhookconfiguration",
     "client/injection/kube/informers/apps/v1/deployment",
+    "client/injection/kube/informers/core/v1/secret",
+    "client/injection/kube/informers/core/v1/service",
     "client/injection/kube/informers/factory",
     "codegen/cmd/injection-gen",
     "codegen/cmd/injection-gen/args",
@@ -1265,6 +1326,7 @@
     "metrics/metricskey",
     "network",
     "profiling",
+    "ptr",
     "reconciler",
     "resolver",
     "signals",
@@ -1275,10 +1337,16 @@
     "tracker",
     "version",
     "webhook",
+    "webhook/certificates",
     "webhook/certificates/resources",
+    "webhook/configmaps",
+    "webhook/psbinding",
+    "webhook/resourcesemantics",
+    "webhook/resourcesemantics/defaulting",
+    "webhook/resourcesemantics/validation",
   ]
   pruneopts = "T"
-  revision = "b63641488ab8d3a70e24a44e465495c7bfbf77b2"
+  revision = "df0629984fa4033282c4007e32530541cf5d2475"
 
 [[projects]]
   branch = "master"
@@ -1304,11 +1372,14 @@
   analyzer-version = 1
   input-imports = [
     "github.com/cloudevents/sdk-go",
+    "github.com/cloudevents/sdk-go/pkg/cloudevents",
+    "github.com/cloudevents/sdk-go/pkg/cloudevents/client",
     "github.com/cloudevents/sdk-go/pkg/cloudevents/transport",
     "github.com/cloudevents/sdk-go/pkg/cloudevents/transport/http",
     "github.com/cloudevents/sdk-go/pkg/cloudevents/types",
     "github.com/google/uuid",
     "github.com/kelseyhightower/envconfig",
+    "github.com/nlopes/slack",
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/require",
     "go.uber.org/zap",
@@ -1322,7 +1393,9 @@
     "k8s.io/apimachinery/pkg/runtime/schema",
     "k8s.io/apimachinery/pkg/runtime/serializer",
     "k8s.io/apimachinery/pkg/types",
+    "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/apimachinery/pkg/util/runtime",
+    "k8s.io/apimachinery/pkg/util/sets",
     "k8s.io/apimachinery/pkg/watch",
     "k8s.io/client-go/discovery",
     "k8s.io/client-go/discovery/fake",
@@ -1330,12 +1403,12 @@
     "k8s.io/client-go/kubernetes/scheme",
     "k8s.io/client-go/kubernetes/typed/core/v1",
     "k8s.io/client-go/listers/apps/v1",
+    "k8s.io/client-go/listers/core/v1",
     "k8s.io/client-go/rest",
     "k8s.io/client-go/testing",
     "k8s.io/client-go/tools/cache",
     "k8s.io/client-go/tools/record",
     "k8s.io/client-go/util/flowcontrol",
-    "k8s.io/client-go/util/retry",
     "k8s.io/code-generator/cmd/client-gen",
     "k8s.io/code-generator/cmd/deepcopy-gen",
     "k8s.io/code-generator/cmd/defaulter-gen",
@@ -1352,6 +1425,7 @@
     "knative.dev/pkg/apis/duck/v1",
     "knative.dev/pkg/client/injection/kube/client",
     "knative.dev/pkg/client/injection/kube/informers/apps/v1/deployment",
+    "knative.dev/pkg/client/injection/kube/informers/core/v1/service",
     "knative.dev/pkg/codegen/cmd/injection-gen",
     "knative.dev/pkg/configmap",
     "knative.dev/pkg/controller",
@@ -1359,9 +1433,20 @@
     "knative.dev/pkg/injection/sharedmain",
     "knative.dev/pkg/kmeta",
     "knative.dev/pkg/logging",
+    "knative.dev/pkg/metrics",
     "knative.dev/pkg/reconciler",
     "knative.dev/pkg/resolver",
+    "knative.dev/pkg/signals",
     "knative.dev/pkg/source",
+    "knative.dev/pkg/system",
+    "knative.dev/pkg/tracker",
+    "knative.dev/pkg/webhook",
+    "knative.dev/pkg/webhook/certificates",
+    "knative.dev/pkg/webhook/configmaps",
+    "knative.dev/pkg/webhook/psbinding",
+    "knative.dev/pkg/webhook/resourcesemantics",
+    "knative.dev/pkg/webhook/resourcesemantics/defaulting",
+    "knative.dev/pkg/webhook/resourcesemantics/validation",
     "knative.dev/test-infra/scripts",
     "knative.dev/test-infra/tools/dep-collector",
   ]

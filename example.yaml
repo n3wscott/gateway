@@ -1,8 +1,10 @@
 apiVersion: gateway.n3wscott.com/v1alpha1
 kind: Slackbot
 metadata:
-  name: example
+  name: slackbot
 spec:
   interval: "10s"
+  secret:
+    name: slackbot
   sink:
     uri: http://sockeye.default.d2k.n3wscott.com/
