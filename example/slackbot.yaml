@@ -1,0 +1,7 @@
+apiVersion: gateway.n3wscott.com/v1alpha1
+kind: Slackbot
+metadata:
+  name: slackbot
+spec:
+  sink:
+    uri: http://sockeye.default.d2k.n3wscott.com/

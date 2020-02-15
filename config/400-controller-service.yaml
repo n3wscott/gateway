@@ -17,11 +17,14 @@ kind: Service
 metadata:
   labels:
     gateway.n3wscott.com/release: devel
-    control-plane: gateway-controller
-  name: gateway-controller
+    app: controller
+  name: gateway
   namespace: n3wscott-gateway
 spec:
   selector:
-    control-plane: gateway-controller
+    app: controller
   ports:
-  - port: 443
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080

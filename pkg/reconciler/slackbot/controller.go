@@ -18,22 +18,15 @@ package slackbot
 
 import (
 	"context"
+	"go.uber.org/zap"
 
-	"github.com/kelseyhightower/envconfig"
-	"k8s.io/client-go/tools/cache"
-
-	"knative.dev/eventing/pkg/apis/sources/v1alpha1"
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/resolver"
 
-	samplesourceClient "github.com/n3wscott/gateway/pkg/client/injection/client"
 	slackbotinformer "github.com/n3wscott/gateway/pkg/client/injection/informers/gateway/v1alpha1/slackbot"
 	"github.com/n3wscott/gateway/pkg/client/injection/reconciler/gateway/v1alpha1/slackbot"
-	kubeclient "knative.dev/pkg/client/injection/kube/client"
-	deploymentinformer "knative.dev/pkg/client/injection/kube/informers/apps/v1/deployment"
-	serviceinformer "knative.dev/pkg/client/injection/kube/informers/core/v1/service"
 )
 
 // NewController initializes the controller and is called by the generated code
@@ -42,36 +35,26 @@ func NewController(
 	ctx context.Context,
 	cmw configmap.Watcher,
 ) *controller.Impl {
-	deploymentInformer := deploymentinformer.Get(ctx)
 	slackbotInformer := slackbotinformer.Get(ctx)
-	serviceInformer := serviceinformer.Get(ctx)
 
 	r := &Reconciler{
-		kubeClientSet:         kubeclient.Get(ctx),
-		slackbotLister:        slackbotInformer.Lister(),
-		deploymentLister:      deploymentInformer.Lister(),
-		samplesourceClientSet: samplesourceClient.Get(ctx),
-		serviceLister:         serviceInformer.Lister(),
+		slackbotLister: slackbotInformer.Lister(),
 	}
-	if err := envconfig.Process("", r); err != nil {
-		logging.FromContext(ctx).Panicf("required environment variable is not defined: %v", err)
-	}
-
 	impl := slackbot.NewImpl(ctx, r)
 	r.sinkResolver = resolver.NewURIResolver(ctx, impl.EnqueueKey)
 
+	// Bot is the instance of the slackbot.
+	r.bot = NewInstance(ctx, func() {
+		impl.GlobalResync(slackbotInformer.Informer())
+	})
+	go func() {
+		if err := r.bot.Start(ctx); err != nil {
+			logging.FromContext(ctx).With(zap.Error(err)).Errorw("Slackbot instance returned error.")
+		}
+	}()
+
 	logging.FromContext(ctx).Info("Setting up event handlers")
 	slackbotInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))
-
-	deploymentInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
-		FilterFunc: controller.Filter(v1alpha1.SchemeGroupVersion.WithKind("Slackbot")),
-		Handler:    controller.HandleAll(impl.EnqueueControllerOf),
-	})
-
-	serviceInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
-		FilterFunc: controller.Filter(v1alpha1.SchemeGroupVersion.WithKind("Slackbot")),
-		Handler:    controller.HandleAll(impl.EnqueueControllerOf),
-	})
 
 	return impl
 }

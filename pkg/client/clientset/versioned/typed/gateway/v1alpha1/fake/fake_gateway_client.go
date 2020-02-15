@@ -28,6 +28,10 @@ type FakeGatewayV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeGatewayV1alpha1) GitHubs(namespace string) v1alpha1.GitHubInterface {
+	return &FakeGitHubs{c, namespace}
+}
+
 func (c *FakeGatewayV1alpha1) Slackbots(namespace string) v1alpha1.SlackbotInterface {
 	return &FakeSlackbots{c, namespace}
 }

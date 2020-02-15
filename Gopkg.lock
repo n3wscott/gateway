@@ -218,11 +218,10 @@
   version = "v1.3.2"
 
 [[projects]]
-  digest = "1:010d46ea3c1e730897e53058d1013a963f3f987675dda87df64f891b945281db"
+  digest = "1:bf40199583e5143d1472fc34d10d6f4b69d97572142acf343b3e43136da40823"
   name = "github.com/google/go-cmp"
   packages = [
     "cmp",
-    "cmp/cmpopts",
     "cmp/internal/diff",
     "cmp/internal/flags",
     "cmp/internal/function",
@@ -230,6 +229,22 @@
   ]
   pruneopts = "NUT"
   revision = "6f77996f0c42f7b84e5a2b252227263f93432e9b"
+
+[[projects]]
+  digest = "1:09fa06250b4e0c69472fadcdf07a29ffcdbd92da94845f8f3cd0dcd19c5f1334"
+  name = "github.com/google/go-github"
+  packages = ["github"]
+  pruneopts = "NUT"
+  revision = "2e3e74fa920e7d6278b7a9737ab5c8b7b1480294"
+  version = "v29.0.3"
+
+[[projects]]
+  digest = "1:a63cff6b5d8b95638bfe300385d93b2a6d9d687734b863da8e09dc834510a690"
+  name = "github.com/google/go-querystring"
+  packages = ["query"]
+  pruneopts = "NUT"
+  revision = "44c6ddd0a2342c386950e880b658017258da92fc"
+  version = "v1.0.0"
 
 [[projects]]
   digest = "1:52c5834e2bebac9030c97cc0798ac11c3aa8a39f098aeb419f142533da6cd3cc"
@@ -476,14 +491,6 @@
   version = "v0.0.7"
 
 [[projects]]
-  digest = "1:f1b3e1f7d4169dcd9e2003685383e99f6a4bdea14129bbcfdd80bfe455e0ad05"
-  name = "github.com/robfig/cron"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "45fbe1491cdd47d74d1bf1396286d67faee8b8b5"
-  version = "v3.0.0"
-
-[[projects]]
   digest = "1:e09ada96a5a41deda4748b1659cc8953961799e798aea557257b56baee4ecaf3"
   name = "github.com/rogpeppe/go-internal"
   packages = [
@@ -591,9 +598,18 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:bbe51412d9915d64ffaa96b51d409e070665efc5194fcf145c4a27d4133107a4"
+  digest = "1:63edef17165d99c26a50262bd1abbf586ab288989b6b0255dd5a44c451728ede"
   name = "golang.org/x/crypto"
-  packages = ["ssh/terminal"]
+  packages = [
+    "cast5",
+    "openpgp",
+    "openpgp/armor",
+    "openpgp/elgamal",
+    "openpgp/errors",
+    "openpgp/packet",
+    "openpgp/s2k",
+    "ssh/terminal",
+  ]
   pruneopts = "NUT"
   revision = "ac88ee75c92c889b97e05591e9a39b6480c538b3"
 
@@ -1262,23 +1278,13 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f52a9c50d2a68bda6505bc507f144521c4bdf3efdeb3757cdd5fdf024b52b563"
+  digest = "1:050f4878e807319f53b40d0f8e8f6c946ab77d98f9cc2c9c3a2199d1b0fb37ca"
   name = "knative.dev/eventing"
   packages = [
     "pkg/adapter",
-    "pkg/apis/duck",
-    "pkg/apis/duck/v1alpha1",
-    "pkg/apis/eventing",
-    "pkg/apis/eventing/v1alpha1",
-    "pkg/apis/messaging",
-    "pkg/apis/messaging/v1alpha1",
-    "pkg/apis/sources",
-    "pkg/apis/sources/v1alpha1",
-    "pkg/client/listers/eventing/v1alpha1",
     "pkg/configmap",
     "pkg/kncloudevents",
     "pkg/tracing",
-    "pkg/utils",
   ]
   pruneopts = "NUT"
   revision = "67225efe772a97d170029be0930f877ab7121cc2"
@@ -1299,16 +1305,13 @@
     "apis",
     "apis/duck",
     "apis/duck/v1",
-    "apis/duck/v1alpha1",
     "apis/duck/v1beta1",
     "changeset",
     "client/injection/ducks/duck/v1/addressable",
     "client/injection/kube/client",
     "client/injection/kube/informers/admissionregistration/v1beta1/mutatingwebhookconfiguration",
     "client/injection/kube/informers/admissionregistration/v1beta1/validatingwebhookconfiguration",
-    "client/injection/kube/informers/apps/v1/deployment",
     "client/injection/kube/informers/core/v1/secret",
-    "client/injection/kube/informers/core/v1/service",
     "client/injection/kube/informers/factory",
     "codegen/cmd/injection-gen",
     "codegen/cmd/injection-gen/args",
@@ -1377,13 +1380,15 @@
     "github.com/cloudevents/sdk-go/pkg/cloudevents/transport",
     "github.com/cloudevents/sdk-go/pkg/cloudevents/transport/http",
     "github.com/cloudevents/sdk-go/pkg/cloudevents/types",
+    "github.com/google/go-cmp/cmp",
+    "github.com/google/go-github/github",
     "github.com/gorilla/websocket",
     "github.com/kelseyhightower/envconfig",
     "github.com/nlopes/slack",
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/require",
     "go.uber.org/zap",
-    "k8s.io/api/apps/v1",
+    "golang.org/x/oauth2",
     "k8s.io/api/core/v1",
     "k8s.io/apimachinery/pkg/api/equality",
     "k8s.io/apimachinery/pkg/api/errors",
@@ -1393,7 +1398,6 @@
     "k8s.io/apimachinery/pkg/runtime/schema",
     "k8s.io/apimachinery/pkg/runtime/serializer",
     "k8s.io/apimachinery/pkg/types",
-    "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/apimachinery/pkg/util/runtime",
     "k8s.io/apimachinery/pkg/util/sets",
     "k8s.io/apimachinery/pkg/watch",
@@ -1402,8 +1406,6 @@
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/kubernetes/scheme",
     "k8s.io/client-go/kubernetes/typed/core/v1",
-    "k8s.io/client-go/listers/apps/v1",
-    "k8s.io/client-go/listers/core/v1",
     "k8s.io/client-go/rest",
     "k8s.io/client-go/testing",
     "k8s.io/client-go/tools/cache",
@@ -1416,16 +1418,10 @@
     "k8s.io/code-generator/cmd/lister-gen",
     "knative.dev/eventing-contrib/pkg/kncloudevents",
     "knative.dev/eventing/pkg/adapter",
-    "knative.dev/eventing/pkg/apis/duck",
-    "knative.dev/eventing/pkg/apis/sources/v1alpha1",
-    "knative.dev/eventing/pkg/client/listers/eventing/v1alpha1",
-    "knative.dev/eventing/pkg/utils",
     "knative.dev/pkg/apis",
     "knative.dev/pkg/apis/duck",
     "knative.dev/pkg/apis/duck/v1",
     "knative.dev/pkg/client/injection/kube/client",
-    "knative.dev/pkg/client/injection/kube/informers/apps/v1/deployment",
-    "knative.dev/pkg/client/injection/kube/informers/core/v1/service",
     "knative.dev/pkg/codegen/cmd/injection-gen",
     "knative.dev/pkg/configmap",
     "knative.dev/pkg/controller",
@@ -1437,6 +1433,7 @@
     "knative.dev/pkg/reconciler",
     "knative.dev/pkg/resolver",
     "knative.dev/pkg/signals",
+    "knative.dev/pkg/source",
     "knative.dev/pkg/system",
     "knative.dev/pkg/tracker",
     "knative.dev/pkg/webhook",

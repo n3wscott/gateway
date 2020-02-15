@@ -18,7 +18,6 @@ package v1alpha1
 
 import (
 	"context"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -70,16 +69,6 @@ type SlackbotSpec struct {
 	// * CloudEventOverrides - defines overrides to control the output format
 	//   and modifications of the event sent to the sink.
 	duckv1.SourceSpec `json:",inline"`
-
-	// Secret holds a reference to a secret containing the Slack auth data.
-	Secret corev1.LocalObjectReference `json:"secret"`
-
-	// Interval is the time interval between events.
-	//
-	// The string format is a sequence of decimal numbers, each with optional
-	// fraction and a unit suffix, such as "300ms", "-1.5h" or "2h45m". Valid time
-	// units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
-	Interval string `json:"interval"`
 }
 
 // SlackbotStatus communicates the observed state of the Slackbot (from the controller).
@@ -95,7 +84,26 @@ type SlackbotStatus struct {
 
 	// AddressStatus is the part where the Slackbot fulfills the Addressable contract.
 	duckv1.AddressStatus `json:",inline"`
+
+	Team     *SlackTeamInfo `json:"team,omitempty"`
+	Channels SlackChannels  `json:"channels,omitempty"`
 }
+
+// +k8s:deepcopy-gen=true
+type SlackTeamInfo struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Domain string `json:"domain"`
+}
+
+// +k8s:deepcopy-gen=true
+type SlackChannel struct {
+	Name string `json:"name,omitempty"`
+	ID   string `json:"id,omitempty"`
+}
+
+// +k8s:deepcopy-gen=true
+type SlackChannels []SlackChannel
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -109,6 +117,7 @@ type SlackbotList struct {
 
 // TODO: implement
 func (in *Slackbot) SetDefaults(context.Context) {
+	// TODO: add default instance annotations.
 }
 
 // TODO: implement

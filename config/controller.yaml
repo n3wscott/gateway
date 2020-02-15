@@ -51,6 +51,12 @@ spec:
         volumeMounts:
         - name: config-logging
           mountPath: /etc/config-logging
+        - mountPath: /var/bindings/slackbot
+          name: slackbot-binding
+          readOnly: true
+        - mountPath: /var/bindings/github
+          name: github-binding
+          readOnly: true
         env:
         - name: SYSTEM_NAMESPACE
           valueFrom:
@@ -62,9 +68,17 @@ spec:
           value: config-observability
         - name: METRICS_DOMAIN
           value: knative.dev/samples
-        - name: SLACKBOT_IMAGE
-          value: github.com/n3wscott/gateway/cmd/slackbot
+        - name: GATEWAY_INSTANCE
+          value: default          # TODO: update this if deploying a second gateway instance.
       volumes:
         - name: config-logging
           configMap:
             name: config-logging
+        - name: slackbot-binding
+          secret:
+            defaultMode: 420
+            secretName: slackbot
+        - name: github-binding
+          secret:
+            defaultMode: 420
+            secretName: github

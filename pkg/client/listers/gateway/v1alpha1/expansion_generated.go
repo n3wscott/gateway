@@ -18,6 +18,14 @@ limitations under the License.
 
 package v1alpha1
 
+// GitHubListerExpansion allows custom methods to be added to
+// GitHubLister.
+type GitHubListerExpansion interface{}
+
+// GitHubNamespaceListerExpansion allows custom methods to be added to
+// GitHubNamespaceLister.
+type GitHubNamespaceListerExpansion interface{}
+
 // SlackbotListerExpansion allows custom methods to be added to
 // SlackbotLister.
 type SlackbotListerExpansion interface{}

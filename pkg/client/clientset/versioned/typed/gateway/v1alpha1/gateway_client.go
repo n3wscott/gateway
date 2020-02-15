@@ -26,12 +26,17 @@ import (
 
 type GatewayV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	GitHubsGetter
 	SlackbotsGetter
 }
 
 // GatewayV1alpha1Client is used to interact with features provided by the gateway.n3wscott.com group.
 type GatewayV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *GatewayV1alpha1Client) GitHubs(namespace string) GitHubInterface {
+	return newGitHubs(c, namespace)
 }
 
 func (c *GatewayV1alpha1Client) Slackbots(namespace string) SlackbotInterface {

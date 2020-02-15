@@ -41,13 +41,14 @@ import (
 var types = map[schema.GroupVersionKind]resourcesemantics.GenericCRD{
 	// List the types to validate.
 	v1alpha1.SchemeGroupVersion.WithKind("Slackbot"): &v1alpha1.Slackbot{},
+	v1alpha1.SchemeGroupVersion.WithKind("GitHub"):   &v1alpha1.GitHub{},
 }
 
 func NewDefaultingAdmissionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
 	return defaulting.NewAdmissionController(ctx,
 
 		// Name of the resource webhook.
-		fmt.Sprintf("defaulting.webhook.%s.knative.dev", system.Namespace()),
+		fmt.Sprintf("defaulting.webhook.%s.n3wscott.com", system.Namespace()),
 
 		// The path on which to serve the webhook.
 		"/defaulting",
@@ -71,7 +72,7 @@ func NewValidationAdmissionController(ctx context.Context, cmw configmap.Watcher
 	return validation.NewAdmissionController(ctx,
 
 		// Name of the resource webhook.
-		fmt.Sprintf("validation.webhook.%s.knative.dev", system.Namespace()),
+		fmt.Sprintf("validation.webhook.%s.n3wscott.com", system.Namespace()),
 
 		// The path on which to serve the webhook.
 		"/resource-validation",
@@ -95,7 +96,7 @@ func NewConfigValidationController(ctx context.Context, cmw configmap.Watcher) *
 	return configmaps.NewAdmissionController(ctx,
 
 		// Name of the configmap webhook.
-		fmt.Sprintf("config.webhook.%s.knative.dev", system.Namespace()),
+		fmt.Sprintf("config.webhook.%s.n3wscott.com", system.Namespace()),
 
 		// The path on which to serve the webhook.
 		"/config-validation",
