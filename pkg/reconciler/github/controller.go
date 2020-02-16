@@ -18,6 +18,7 @@ package github
 
 import (
 	"context"
+	"go.uber.org/zap"
 
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
@@ -41,6 +42,15 @@ func NewController(
 	}
 	impl := github.NewImpl(ctx, r)
 	r.sinkResolver = resolver.NewURIResolver(ctx, impl.EnqueueKey)
+
+	r.gh = NewInstance(ctx, func() {
+		impl.GlobalResync(githubInformer.Informer())
+	})
+	go func() {
+		if err := r.gh.Start(ctx); err != nil {
+			logging.FromContext(ctx).With(zap.Error(err)).Errorw("GitHub instance returned error.")
+		}
+	}()
 
 	logging.FromContext(ctx).Info("Setting up event handlers")
 	githubInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))

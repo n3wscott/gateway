@@ -90,6 +90,19 @@ type GitHubStatus struct {
 
 	// AddressStatus is the part where the GitHub fulfills the Addressable contract.
 	duckv1.AddressStatus `json:",inline"`
+
+	Organization GitHubOrganization `json:"org,omitempty"`
+}
+
+type GitHubOrganization struct {
+	Name        string    `json:"name,omitempty"`
+	ID          int64     `json:"id,omitempty"`
+	Login       string    `json:"login,omitempty"`
+	Avatar      *apis.URL `json:"avatar,omitempty"`
+	URL         *apis.URL `json:"url,omitempty"`
+	Email       string    `json:"email,omitempty"`
+	Description string    `json:"description,omitempty"`
+	Type        string    `json:"type,omitempty"` // Organization or User
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -20,13 +20,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
+	"time"
+
 	cloudevents "github.com/cloudevents/sdk-go"
 	"github.com/cloudevents/sdk-go/pkg/cloudevents/client"
 	"github.com/cloudevents/sdk-go/pkg/cloudevents/transport/http"
-	slackbotinformer "github.com/n3wscott/gateway/pkg/client/injection/informers/gateway/v1alpha1/slackbot"
-	listers "github.com/n3wscott/gateway/pkg/client/listers/gateway/v1alpha1"
-	"github.com/n3wscott/gateway/pkg/rawslack"
-	"github.com/n3wscott/gateway/pkg/slackbot/events"
 	"github.com/nlopes/slack"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/labels"
@@ -34,11 +33,13 @@ import (
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
-	"sync"
-	"time"
 
 	"github.com/n3wscott/gateway/pkg/apis/gateway/v1alpha1"
 	"github.com/n3wscott/gateway/pkg/bindings/slackbot"
+	slackbotinformer "github.com/n3wscott/gateway/pkg/client/injection/informers/gateway/v1alpha1/slackbot"
+	listers "github.com/n3wscott/gateway/pkg/client/listers/gateway/v1alpha1"
+	"github.com/n3wscott/gateway/pkg/rawslack"
+	"github.com/n3wscott/gateway/pkg/slackbot/events"
 )
 
 type Instance interface {
@@ -49,7 +50,7 @@ type Instance interface {
 	GetIMs(ctx context.Context) (v1alpha1.SlackIMs, error)
 }
 
-func NewInstance(ctx context.Context, resync func()) *slackbotInstance {
+func NewInstance(ctx context.Context, resync func()) Instance {
 	return &slackbotInstance{
 		resync: resync,
 	}
@@ -194,15 +195,15 @@ func (s *slackbotInstance) makeCloudEventsClient(ctx context.Context, respChan c
 }
 
 func (s *slackbotInstance) syncSinks(ctx context.Context) {
-	sbs, err := s.slackbotLister.List(labels.Everything())
+	ss, err := s.slackbotLister.List(labels.Everything())
 	if err != nil {
 		logging.FromContext(ctx).With(zap.Error(err)).Error("Could not sync the sinks.")
 	}
 
 	targets := sets.NewString()
-	for _, sb := range sbs {
-		if sb.Status.SinkURI != nil {
-			targets.Insert(sb.Status.SinkURI.String())
+	for _, s := range ss {
+		if s.Status.SinkURI != nil {
+			targets.Insert(s.Status.SinkURI.String())
 		}
 	}
 

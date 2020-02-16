@@ -50,6 +50,8 @@ type Reconciler struct {
 	githubLister listers.GitHubLister
 
 	sinkResolver *resolver.URIResolver
+
+	gh Instance
 }
 
 // Check that our Reconciler implements Interface
