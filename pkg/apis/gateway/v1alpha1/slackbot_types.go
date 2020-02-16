@@ -87,23 +87,34 @@ type SlackbotStatus struct {
 
 	Team     *SlackTeamInfo `json:"team,omitempty"`
 	Channels SlackChannels  `json:"channels,omitempty"`
+	IMs      SlackIMs       `json:"ims,omitempty"`
 }
 
 // +k8s:deepcopy-gen=true
 type SlackTeamInfo struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	Domain string `json:"domain"`
+	ID   string    `json:"id,omitempty"`
+	Name string    `json:"name,omitempty"`
+	URL  *apis.URL `json:"domain,omitempty"`
 }
 
 // +k8s:deepcopy-gen=true
 type SlackChannel struct {
-	Name string `json:"name,omitempty"`
-	ID   string `json:"id,omitempty"`
+	Name     string `json:"name,omitempty"`
+	ID       string `json:"id,omitempty"`
+	IsMember bool   `json:"isMember,omitempty"`
 }
 
 // +k8s:deepcopy-gen=true
 type SlackChannels []SlackChannel
+
+// +k8s:deepcopy-gen=true
+type SlackIM struct {
+	ID   string `json:"id,omitempty"`
+	With string `json:"with,omitempty"`
+}
+
+// +k8s:deepcopy-gen=true
+type SlackIMs []SlackIM
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 

@@ -120,5 +120,11 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, source *v1alpha1.Slackbo
 		source.Status.Channels = channels
 	}
 
+	if ims, err := r.bot.GetIMs(ctx); err != nil {
+		logging.FromContext(ctx).With(zap.Error(err)).Error("Failed to get instant messages.")
+	} else {
+		source.Status.IMs = ims
+	}
+
 	return newReconciledNormal(source.Namespace, source.Name)
 }
