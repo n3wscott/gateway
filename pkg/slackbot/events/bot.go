@@ -8,6 +8,7 @@ import (
 
 const (
 	bot_type_template = "slackbot.%s" // type
+	ResponseEvent     = "slackbot.response"
 )
 
 var knownBotEvents = []string{

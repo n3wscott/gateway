@@ -107,12 +107,14 @@ func (s *slackbotInstance) Start(ctx context.Context) error {
 	s.syncSinks(ctx)
 	s.resync()
 
-	if err := s.makeCloudEventsClient(ctx); err != nil {
+	outboundChan := make(chan cloudevents.Event, 20)
+	responseChan := make(chan events.Message, 20)
+
+	if err := s.makeCloudEventsClient(ctx, responseChan); err != nil {
 		return err
 	}
-	cloudeventsCh := make(chan cloudevents.Event, 20)
 
-	go s.startRTM(ctx, cloudeventsCh)
+	go s.startRTM(ctx, outboundChan, responseChan)
 
 	heartbeat := time.NewTicker(time.Second * 600) // 5 minute heartbeat
 	defer heartbeat.Stop()
@@ -121,7 +123,7 @@ func (s *slackbotInstance) Start(ctx context.Context) error {
 	defer dirtyBit.Stop()
 	for {
 		select {
-		case event := <-cloudeventsCh:
+		case event := <-outboundChan:
 			// This does a form of fanout. Tries once each target.
 			for _, target := range s.targets {
 				cectx := cloudevents.ContextWithTarget(ctx, target)
@@ -151,7 +153,9 @@ func (s *slackbotInstance) Start(ctx context.Context) error {
 	}
 }
 
-func (s *slackbotInstance) makeCloudEventsClient(ctx context.Context) error {
+func (s *slackbotInstance) makeCloudEventsClient(ctx context.Context, respChan chan events.Message) error {
+	// TODO: this will not work because we want to share port 8080 at the top with slack and github. But for now we can
+	// ignore the path.
 	t, err := cloudevents.NewHTTPTransport(
 		http.WithBinaryEncoding(),
 		http.WithPort(8080),
@@ -166,6 +170,26 @@ func (s *slackbotInstance) makeCloudEventsClient(ctx context.Context) error {
 	); err != nil {
 		return err
 	}
+
+	go func() {
+		if err := s.ce.StartReceiver(ctx, func(ctx context.Context, event cloudevents.Event) {
+			// TODO: need to filter on identity as well?
+			switch event.Type() {
+			case events.ResponseEvent:
+				resp := events.Message{}
+				if err := event.DataAs(&resp); err != nil {
+					logging.FromContext(ctx).With(zap.Error(err)).Error("Failed to get data from event.")
+				}
+				respChan <- resp
+
+			default:
+				// skip sending to the channel.
+			}
+		}); err != nil {
+			logging.FromContext(ctx).With(zap.Error(err)).Error("Failed to start cloudevents receiver.")
+		}
+	}()
+
 	return nil
 }
 
@@ -286,10 +310,21 @@ func (s *slackbotInstance) GetIMs(ctx context.Context) (v1alpha1.SlackIMs, error
 	return s.ims.DeepCopy(), nil
 }
 
-func (s *slackbotInstance) startRTM(ctx context.Context, ce chan cloudevents.Event) {
+func (s *slackbotInstance) startRTM(ctx context.Context, ce chan cloudevents.Event, respChan chan events.Message) {
 	logger := logging.FromContext(ctx).With(zap.String("method", "startRTM"))
 	rtm := rawslack.NewRTM(s.client)
 	go rtm.ManageConnection()
+
+	go func() {
+		for {
+			select {
+			case resp := <-respChan:
+				logger.Infof("Sending %q to %s", resp.Text, resp.Channel)
+				// TODO: I think new outgoing message makes an ID and that is how you can respond to a previous message.
+				rtm.SendMessage(rtm.NewOutgoingMessage(resp.Text, resp.Channel))
+			}
+		}
+	}()
 
 	for msg := range rtm.IncomingEvents {
 		switch ev := msg.Data.(type) {
