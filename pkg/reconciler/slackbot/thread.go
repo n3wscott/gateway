@@ -202,7 +202,7 @@ func (s *slackbotInstance) syncSinks(ctx context.Context) {
 
 	targets := sets.NewString()
 	for _, s := range ss {
-		if s.Status.SinkURI != nil {
+		if s.Status.IsReady() && s.Status.SinkURI != nil {
 			targets.Insert(s.Status.SinkURI.String())
 		}
 	}

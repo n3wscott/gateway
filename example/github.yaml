@@ -1,10 +1,28 @@
 apiVersion: gateway.n3wscott.com/v1alpha1
 kind: GitHub
 metadata:
-  name: github
+  name: github-n3wscott
 spec:
   org: n3wscott
   repos:
   - gateway
+  sink:
+    uri: http://sockeye.default.d2k.n3wscott.com/
+---
+apiVersion: gateway.n3wscott.com/v1alpha1
+kind: GitHub
+metadata:
+  name: github-knative
+spec:
+  org: knative
+  sink:
+    uri: http://sockeye.default.d2k.n3wscott.com/
+---
+apiVersion: gateway.n3wscott.com/v1alpha1
+kind: GitHub
+metadata:
+  name: github-invalid
+spec:
+  org: dadasdsaadsdasads
   sink:
     uri: http://sockeye.default.d2k.n3wscott.com/
