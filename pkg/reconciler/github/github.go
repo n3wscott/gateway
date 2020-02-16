@@ -107,5 +107,39 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, source *v1alpha1.GitHub)
 	}
 	source.Status.MarkSink(sinkURI)
 
+	if source.Status.Organization != nil && source.Status.Organization.Login != source.Spec.Organization {
+		source.Status.Organization = nil
+		source.Status.Repositories = nil
+		source.Status.MarkUnknownOrganization("Organization resync progressing.")
+		return nil
+	}
+
+	if source.Status.Organization == nil {
+		org, err := r.gh.GetOrganization(ctx, source)
+		if err != nil {
+			source.Status.Organization = &v1alpha1.GitHubOrganization{
+				Login: source.Spec.Organization,
+				Type:  "Error",
+			}
+			source.Status.MarkUnknownOrganization("Unable to fetch org. %s", err.Error())
+			return err
+		} else if org != nil {
+			source.Status.Organization = org
+			source.Status.MarkValidOrganization()
+		}
+	}
+
+	if source.Status.Repositories == nil {
+		repos, err := r.gh.GetRepositories(ctx, source)
+		if err != nil {
+			source.Status.Repositories = []v1alpha1.GitHubRepository{{
+				Name: "Error",
+			}}
+			return err
+		} else if repos != nil {
+			source.Status.Repositories = repos
+		}
+	}
+
 	return newReconciledNormal(source.Namespace, source.Name)
 }

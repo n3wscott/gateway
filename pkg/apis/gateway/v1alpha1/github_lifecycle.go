@@ -31,21 +31,24 @@ const (
 
 	// GitHubConditionAddressable has status True when there is a service for posting to.
 	GitHubConditionAddressable apis.ConditionType = "Addressable"
+
+	GitHubConditionOrganization apis.ConditionType = "Organization"
 )
 
 var githubCondSet = apis.NewLivingConditionSet(
 	GitHubConditionSinkProvided,
 	GitHubConditionAddressable,
+	GitHubConditionOrganization,
 )
 
 // GetCondition returns the condition currently associated with the given type, or nil.
 func (s *GitHubStatus) GetCondition(t apis.ConditionType) *apis.Condition {
-	return slackCondSet.Manage(s).GetCondition(t)
+	return githubCondSet.Manage(s).GetCondition(t)
 }
 
 // InitializeConditions sets relevant unset conditions to Unknown state.
 func (s *GitHubStatus) InitializeConditions() {
-	slackCondSet.Manage(s).InitializeConditions()
+	githubCondSet.Manage(s).InitializeConditions()
 }
 
 // MarkSinkWarnDeprecated sets the condition that the source has a sink configured and warns ref is deprecated.
@@ -58,9 +61,9 @@ func (s *GitHubStatus) MarkSinkWarnRefDeprecated(uri *apis.URL) {
 			Severity: apis.ConditionSeverityError,
 			Message:  "Using deprecated object ref fields when specifying spec.sink. These will be removed in a future release. Update to spec.sink.ref.",
 		}
-		slackCondSet.Manage(s).SetCondition(c)
+		githubCondSet.Manage(s).SetCondition(c)
 	} else {
-		slackCondSet.Manage(s).MarkUnknown(GitHubConditionSinkProvided, "SinkEmpty", "Sink has resolved to empty.%s", "")
+		githubCondSet.Manage(s).MarkUnknown(GitHubConditionSinkProvided, "SinkEmpty", "Sink has resolved to empty.%s", "")
 	}
 }
 
@@ -68,15 +71,15 @@ func (s *GitHubStatus) MarkSinkWarnRefDeprecated(uri *apis.URL) {
 func (s *GitHubStatus) MarkSink(uri *apis.URL) {
 	s.SinkURI = uri
 	if len(uri.String()) > 0 {
-		slackCondSet.Manage(s).MarkTrue(GitHubConditionSinkProvided)
+		githubCondSet.Manage(s).MarkTrue(GitHubConditionSinkProvided)
 	} else {
-		slackCondSet.Manage(s).MarkUnknown(GitHubConditionSinkProvided, "SinkEmpty", "Sink has resolved to empty.%s", "")
+		githubCondSet.Manage(s).MarkUnknown(GitHubConditionSinkProvided, "SinkEmpty", "Sink has resolved to empty.%s", "")
 	}
 }
 
 // MarkNoSink sets the condition that the source does not have a sink configured.
 func (s *GitHubStatus) MarkNoSink(reason, messageFormat string, messageA ...interface{}) {
-	slackCondSet.Manage(s).MarkFalse(GitHubConditionSinkProvided, reason, messageFormat, messageA...)
+	githubCondSet.Manage(s).MarkFalse(GitHubConditionSinkProvided, reason, messageFormat, messageA...)
 }
 
 func (ss *GitHubStatus) MarkAddress(url *apis.URL) {
@@ -85,19 +88,27 @@ func (ss *GitHubStatus) MarkAddress(url *apis.URL) {
 	}
 	if url != nil {
 		ss.Address.URL = url
-		slackCondSet.Manage(ss).MarkTrue(GitHubConditionAddressable)
+		githubCondSet.Manage(ss).MarkTrue(GitHubConditionAddressable)
 	} else {
 		ss.Address.URL = nil
-		slackCondSet.Manage(ss).MarkFalse(GitHubConditionAddressable, "ServiceUnavailable", "Service was not created.")
+		githubCondSet.Manage(ss).MarkFalse(GitHubConditionAddressable, "ServiceUnavailable", "Service was not created.")
 	}
+}
+
+func (s *GitHubStatus) MarkUnknownOrganization(messageFormat string, messageA ...interface{}) {
+	githubCondSet.Manage(s).MarkUnknown(GitHubConditionOrganization, "OrganizationUnknown", messageFormat, messageA...)
+}
+
+func (ss *GitHubStatus) MarkValidOrganization() {
+	githubCondSet.Manage(ss).MarkTrue(GitHubConditionOrganization)
 }
 
 // MarkNoSink sets the condition that the source does not have a sink configured.
 func (s *GitHubStatus) MarkNoAddress(reason, messageFormat string, messageA ...interface{}) {
-	slackCondSet.Manage(s).MarkFalse(GitHubConditionAddressable, reason, messageFormat, messageA...)
+	githubCondSet.Manage(s).MarkFalse(GitHubConditionAddressable, reason, messageFormat, messageA...)
 }
 
 // IsReady returns true if the resource is ready overall.
 func (s *GitHubStatus) IsReady() bool {
-	return slackCondSet.Manage(s).IsHappy()
+	return githubCondSet.Manage(s).IsHappy()
 }
