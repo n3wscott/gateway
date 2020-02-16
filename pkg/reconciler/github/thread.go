@@ -298,6 +298,8 @@ func (s *githubInstance) poll(ctx context.Context, orgRepos []string, ce chan cl
 		org := or[0]
 		repo := or[1]
 
+		// TODO: list will not give PRs that have been closed by default. Might have to track down
+		// PRs that got closed or merged if not in list and we think they should be.
 		prs, resp, err := s.client.PullRequests.List(ctx, org, repo, nil)
 		if resp != nil {
 			fmt.Println("Updated quota:", resp.Rate.String())
