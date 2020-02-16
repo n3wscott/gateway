@@ -17,10 +17,23 @@ package slackbot
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	cloudevents "github.com/cloudevents/sdk-go"
+	"github.com/cloudevents/sdk-go/pkg/cloudevents/client"
+	"github.com/cloudevents/sdk-go/pkg/cloudevents/transport/http"
+	slackbotinformer "github.com/n3wscott/gateway/pkg/client/injection/informers/gateway/v1alpha1/slackbot"
+	listers "github.com/n3wscott/gateway/pkg/client/listers/gateway/v1alpha1"
+	"github.com/n3wscott/gateway/pkg/rawslack"
+	"github.com/n3wscott/gateway/pkg/slackbot/events"
 	"github.com/nlopes/slack"
+	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/pkg/apis"
+	"knative.dev/pkg/controller"
+	"knative.dev/pkg/logging"
 	"sync"
 	"time"
 
@@ -45,18 +58,33 @@ func NewInstance(ctx context.Context, resync func()) *slackbotInstance {
 type slackbotInstance struct {
 	mtx sync.Mutex
 
+	slackbotLister listers.SlackbotLister
+	dirty          bool
+
 	team     *v1alpha1.SlackTeamInfo
 	channels v1alpha1.SlackChannels
 	ims      v1alpha1.SlackIMs
 	resync   func()
 
 	client *slack.Client
+
+	ce      cloudevents.Client
+	targets []string
 }
 
 var _ Instance = (*slackbotInstance)(nil)
 
 // Start is a blocking call.
 func (s *slackbotInstance) Start(ctx context.Context) error {
+	slackbotInformer := slackbotinformer.Get(ctx)
+	s.slackbotLister = slackbotInformer.Lister()
+
+	slackbotInformer.Informer().AddEventHandler(controller.HandleAll(func(i interface{}) {
+		s.mtx.Lock()
+		s.dirty = true
+		s.mtx.Unlock()
+	}))
+
 	c, err := slackbot.New(ctx)
 	if err != nil {
 		return err
@@ -64,30 +92,99 @@ func (s *slackbotInstance) Start(ctx context.Context) error {
 	s.client = c
 
 	if err := s.syncTeam(ctx); err != nil {
-		return nil
+		return err
 	}
 
 	if err := s.syncChannels(ctx); err != nil {
-		return nil
+		return err
 	}
 
 	if err := s.syncIMs(ctx); err != nil {
-		return nil
+		return err
 	}
 
 	// force a resync now.
+	s.syncSinks(ctx)
 	s.resync()
 
-	heartbeat := time.NewTicker(time.Second * 30)
+	if err := s.makeCloudEventsClient(ctx); err != nil {
+		return err
+	}
+	cloudeventsCh := make(chan cloudevents.Event, 20)
+
+	go s.startRTM(ctx, cloudeventsCh)
+
+	heartbeat := time.NewTicker(time.Second * 600) // 5 minute heartbeat
 	defer heartbeat.Stop()
+
+	dirtyBit := time.NewTicker(time.Second * 5) // 5 second dirty bit check
+	defer dirtyBit.Stop()
 	for {
 		select {
+		case event := <-cloudeventsCh:
+			// This does a form of fanout. Tries once each target.
+			for _, target := range s.targets {
+				cectx := cloudevents.ContextWithTarget(ctx, target)
+				if _, _, err := s.ce.Send(cectx, event); err != nil {
+					logging.FromContext(cectx).
+						With(zap.Error(err)).
+						With(zap.String("target", target)).
+						Warn("Failed to send to target.")
+				}
+			}
+
+		case <-dirtyBit.C:
+			s.mtx.Lock()
+			wasDirty := s.dirty
+			s.dirty = false
+			s.mtx.Unlock()
+			if wasDirty {
+				s.syncSinks(ctx)
+			}
+
 		case <-heartbeat.C:
-			fmt.Println("<3 heartbeat from slackbot instance.")
+			logging.FromContext(ctx).Info("<3 heartbeat from slackbot instance.")
+
 		case <-ctx.Done():
 			return nil
 		}
 	}
+}
+
+func (s *slackbotInstance) makeCloudEventsClient(ctx context.Context) error {
+	t, err := cloudevents.NewHTTPTransport(
+		http.WithBinaryEncoding(),
+		http.WithPort(8080),
+	)
+	if err != nil {
+		return err
+	}
+
+	if s.ce, err = cloudevents.NewClient(t,
+		client.WithTimeNow(),
+		client.WithUUIDs(),
+	); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *slackbotInstance) syncSinks(ctx context.Context) {
+	sbs, err := s.slackbotLister.List(labels.Everything())
+	if err != nil {
+		logging.FromContext(ctx).With(zap.Error(err)).Error("Could not sync the sinks.")
+	}
+
+	targets := sets.NewString()
+	for _, sb := range sbs {
+		if sb.Status.SinkURI != nil {
+			targets.Insert(sb.Status.SinkURI.String())
+		}
+	}
+
+	s.mtx.Lock()
+	s.targets = targets.List()
+	s.mtx.Unlock()
 }
 
 func (s *slackbotInstance) syncTeam(ctx context.Context) error {
@@ -96,7 +193,7 @@ func (s *slackbotInstance) syncTeam(ctx context.Context) error {
 		return err
 	}
 
-	url, err := apis.ParseURL(fmt.Sprintf("https://%s.slack.com/", ti.Domain))
+	u, err := apis.ParseURL(fmt.Sprintf("https://%s.slack.com/", ti.Domain))
 	if err != nil {
 		return err
 	}
@@ -105,7 +202,7 @@ func (s *slackbotInstance) syncTeam(ctx context.Context) error {
 	s.team = &v1alpha1.SlackTeamInfo{
 		ID:   ti.ID,
 		Name: ti.Name,
-		URL:  url,
+		URL:  u,
 	}
 	s.mtx.Unlock()
 
@@ -189,26 +286,42 @@ func (s *slackbotInstance) GetIMs(ctx context.Context) (v1alpha1.SlackIMs, error
 	return s.ims.DeepCopy(), nil
 }
 
-func do() {
-	ctx := context.Background()
+func (s *slackbotInstance) startRTM(ctx context.Context, ce chan cloudevents.Event) {
+	logger := logging.FromContext(ctx).With(zap.String("method", "startRTM"))
+	rtm := rawslack.NewRTM(s.client)
+	go rtm.ManageConnection()
 
-	c, err := slackbot.New(ctx)
-	if err != nil {
-		panic(err)
-	}
+	for msg := range rtm.IncomingEvents {
+		switch ev := msg.Data.(type) {
+		case *rawslack.ConnectingEvent:
+			logger.Info("connecting")
 
-	channels, err := c.GetChannels(false)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("Channels:")
-	for _, ch := range channels {
-		fmt.Println(ch.Name, ch.ID)
-	}
+		case *rawslack.ConnectedEvent:
+			logger.Info("connected")
 
-	ti, err := c.GetTeamInfo()
-	if err != nil {
-		panic(err)
+		case *rawslack.HelloEvent:
+			logger.Info("hello")
+
+		case *rawslack.LatencyReport:
+			logger.Debug("latency")
+
+		case *rawslack.AckMessage:
+			logger.Infof("ack %+v", ev)
+
+		case rawslack.RTMError:
+			logger.Infof("error %+v", msg)
+
+		case json.RawMessage:
+			logger.Infof("%s: %v", msg.Type, string(ev))
+			event := cloudevents.NewEvent(cloudevents.VersionV1)
+			event.SetDataContentType(cloudevents.ApplicationJSON)
+			event.SetType(events.Slack.Type(msg.Type))
+			event.SetSource("slackbot.gateway.todo")
+			_ = event.SetData(ev)
+			ce <- event
+
+		default:
+			logger.Infof("Unexpected(%T): %v", msg.Data, msg.Data)
+		}
 	}
-	fmt.Println("Team info:", ti)
 }
