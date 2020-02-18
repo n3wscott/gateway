@@ -112,7 +112,7 @@ func (s *githubInstance) Start(ctx context.Context) error {
 	for {
 		select {
 		case <-poll.C:
-			s.poll(ctx, s.orgRepos, outboundChan)
+			go s.poll(ctx, s.orgRepos, outboundChan)
 
 		case event := <-outboundChan:
 			// This does a form of fanout. Tries once each target.
@@ -288,9 +288,13 @@ func (s *githubInstance) GetRepositories(ctx context.Context, gh *v1alpha1.GitHu
 }
 
 func (s *githubInstance) poll(ctx context.Context, orgRepos []string, ce chan cloudevents.Event) {
+	fmt.Println("polling with :", orgRepos)
 	for _, orgRepo := range orgRepos {
 
 		or := strings.Split(orgRepo, "/")
+
+		fmt.Println("looking at Org/Repo:", orgRepo)
+
 		if len(or) != 2 {
 			continue
 			// TODO: log error
@@ -307,7 +311,7 @@ func (s *githubInstance) poll(ctx context.Context, orgRepos []string, ce chan cl
 
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
-			return
+			continue
 		}
 		for i, pr := range prs {
 			state := &GitHubPRState{
@@ -320,12 +324,47 @@ func (s *githubInstance) poll(ctx context.Context, orgRepos []string, ce chan cl
 
 			if knownState, found := s.knownPR[pr.GetURL()]; found {
 				if diff := cmp.Diff(state, knownState); diff != "" {
+					// known but changed.
 					fmt.Println("Change in PR!", pr.GetHTMLURL())
 					fmt.Println(diff)
+
+					parts := strings.Split(pr.GetHTMLURL(), "/pull/") // this will have a big for orgs or repos called pull... yolo
+					source := parts[0]
+					subject := "pull/" + parts[1]
+
+					event := cloudevents.NewEvent(cloudevents.VersionV1)
+					event.SetDataContentType(cloudevents.ApplicationJSON)
+					event.SetType("s")
+					event.SetSource(source)
+					event.SetSubject(subject)
+					event.SetExtension("action", "diff")
+					event.SetExtension("url", pr.GetHTMLURL())
+					_ = event.SetData(GitHubDiff{
+						PR:   pr,
+						Diff: diff,
+					})
+					ce <- event
 				}
 			} else {
+				// new to us.
 				fmt.Printf("%v. %v\n\t%s\n\t%s\n", i+1, pr.GetTitle(), pr.GetState(), pr.GetHTMLURL())
 				fmt.Printf("\t%s\t%s\t%s\t%s\n", pr.GetCreatedAt(), pr.GetUpdatedAt(), pr.GetMergedAt(), pr.GetClosedAt())
+
+				parts := strings.Split(pr.GetHTMLURL(), "/pull/") // this will have a big for orgs or repos called pull... yolo
+				source := parts[0]
+				subject := "pull/" + parts[1]
+
+				event := cloudevents.NewEvent(cloudevents.VersionV1)
+				event.SetDataContentType(cloudevents.ApplicationJSON)
+				event.SetType("pull_request")
+				event.SetSource(source)
+				event.SetSubject(subject)
+				event.SetExtension("action", "new")
+				event.SetExtension("url", pr.GetHTMLURL())
+				_ = event.SetData(GitHubDiff{
+					PR: pr,
+				})
+				ce <- event
 			}
 			if !state.ClosedAt.IsZero() || !state.MergedAt.IsZero() {
 				delete(s.knownPR, pr.GetURL())
@@ -342,4 +381,9 @@ type GitHubPRState struct {
 	UpdatedAt time.Time `json:"updatedAt,omitempty"`
 	ClosedAt  time.Time `json:"closedAt,omitempty"`
 	MergedAt  time.Time `json:"mergedAt,omitempty"`
+}
+
+type GitHubDiff struct {
+	PR   *github.PullRequest `json:"pr"`
+	Diff string              `json:"diff"`
 }
